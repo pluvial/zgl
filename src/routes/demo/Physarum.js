@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { updateObject } from '$lib/util.js';
+
 // Inspired by https://cargocollective.com/sagejenson/physarum
 export class Physarum {
 	static Tags = ['2d', 'simulation'];

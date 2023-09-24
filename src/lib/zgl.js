@@ -31,6 +31,8 @@
 // - tag already exists
 // - texture/array uniform compatibility
 
+import { updateObject } from './util.js';
+
 const Type2Setter = {};
 const UniformType2TexTarget = {};
 const TextureFormats = {};
@@ -67,13 +69,6 @@ function memoize(f) {
 	const wrap = (k) => (k in cache ? cache[k] : (cache[k] = f(k)));
 	wrap.cache = cache;
 	return wrap;
-}
-
-function updateObject(o, updates) {
-	for (const s in updates) {
-		o[s] = updates[s];
-	}
-	return o;
 }
 
 // Parse strings like 'min(s,d)', 'max(s,d)', 's*d', 's+d*(1-sa)',
