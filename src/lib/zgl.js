@@ -878,10 +878,10 @@ function drawQuads(self, params, target) {
 	return target;
 }
 
-function wrapSwissGL(hook) {
+function wrapZGL(hook) {
 	const glsl = this;
 	const f = (params, target) => hook(glsl, params, target);
-	f.hook = wrapSwissGL;
+	f.hook = wrapZGL;
 	f.gl = glsl.gl;
 	return f;
 }
@@ -896,7 +896,7 @@ export function zgl(canvas_gl) {
 	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 	ensureVertexArray(gl, 1024);
 	const glsl = (params, target) => drawQuads(glsl, params, target);
-	glsl.hook = wrapSwissGL;
+	glsl.hook = wrapZGL;
 
 	glsl.gl = gl;
 	glsl.shaders = {};

@@ -270,7 +270,7 @@ export class DemoApp {
 		}
 		setDisplay('#settingButton', this.gui ? 'block' : 'none');
 		if ($('#sourceLink')) {
-			$('#sourceLink').href = `https://github.com/google/swissgl/blob/main/demo/${name}.js`;
+			$('#sourceLink').href = `https://github.com/pluvial/zgl/blob/main/src/routes/demo/${name}.js`;
 		}
 		this.updateVRButtons();
 		this.resetCamera();
@@ -305,7 +305,7 @@ export class DemoApp {
 		const canvas = document.createElement('canvas');
 		canvas.width = 400;
 		canvas.height = 300;
-		const glsl = SwissGL(canvas);
+		const glsl = zgl(canvas);
 		const withCamera = glsl.hook((glsl, p, t) =>
 			glsl({ ...p, Inc: this.glsl_include + (p.Inc || '') }, t)
 		);
