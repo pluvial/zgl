@@ -1,4 +1,4 @@
-import { zgl } from '$lib/zgl.js';
+import { zgl } from '$lib/zgl.ts';
 
 const $ = (s) => document.querySelector(s);
 const setDisplay = (el, val) => {

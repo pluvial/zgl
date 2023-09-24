@@ -3,7 +3,7 @@
 	let canvas: HTMLCanvasElement;
 
 	onMount(async () => {
-		const { zgl } = await import('$lib/zgl.js');
+		const { zgl } = await import('$lib/zgl.ts');
 		const glsl = zgl(canvas);
 		const [W, H] = [40, 20];
 		const field = glsl({}, { size: [W, H], story: 2, tag: 'field' });

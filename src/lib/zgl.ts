@@ -33,18 +33,62 @@
 
 import { updateObject } from './util.js';
 
-const Type2Setter = {};
-const UniformType2TexTarget = {};
-const TextureFormats = {};
+type GL = WebGL2RenderingContext;
+
+type S =
+	| 'BOOL'
+	| 'BOOL_VEC2'
+	| 'BOOL_VEC3'
+	| 'BOOL_VEC4'
+	| 'INT'
+	| 'INT_VEC2'
+	| 'INT_VEC3'
+	| 'INT_VEC4'
+	| 'FLOAT'
+	| 'FLOAT_VEC2'
+	| 'FLOAT_VEC3'
+	| 'FLOAT_VEC4'
+	| 'FLOAT_MAT2'
+	| 'FLOAT_MAT3'
+	| 'FLOAT_MAT4';
+
+const Type2Setter = {} as Record<GL[S], string>;
+const UniformType2TexTarget = {} as Record<
+	GL['SAMPLER_2D' | 'SAMPLER_2D_ARRAY'],
+	GL['TEXTURE_2D' | 'TEXTURE_2D_ARRAY']
+>;
+const TextureFormats = {} as Record<
+	string,
+	{
+		internalFormat: GL[
+			| 'R8'
+			| 'RGBA8'
+			| 'R16F'
+			| 'RGBA16F'
+			| 'R32F'
+			| 'RG32F'
+			| 'RGBA32F'
+			| 'DEPTH_COMPONENT24'];
+		glformat: GL['RED' | 'RGBA' | 'RG' | 'DEPTH_COMPONENT'];
+		type: GL['UNSIGNED_BYTE' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT'];
+		CpuArray:
+			| Uint8ArrayConstructor
+			| Uint16ArrayConstructor
+			| Float32ArrayConstructor
+			| Uint32ArrayConstructor;
+		chn: 1 | 2 | 4;
+		// chn: number;
+	}
+>;
 {
 	const GL = WebGL2RenderingContext;
-	for (const t of ['FLOAT', 'INT', 'BOOL']) {
+	for (const t of ['FLOAT', 'INT', 'BOOL'] as const) {
 		const suf = t == 'FLOAT' ? 'f' : 'i';
 		Type2Setter[GL[t]] = 'uniform1' + suf;
-		for (const i of [2, 3, 4]) {
+		for (const i of [2, 3, 4] as const) {
 			Type2Setter[GL[`${t}_VEC${i}`]] = `uniform${i}${suf}v`;
 			if (suf == 'f') {
-				Type2Setter[GL[`${t}_MAT${i}`]] = `uniformMatrix${i}fv`;
+				Type2Setter[GL[`${t}_MAT${i}` as S]] = `uniformMatrix${i}fv`;
 			}
 		}
 	}
@@ -60,7 +104,7 @@ const TextureFormats = {};
 		['rg32f', GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
 		['rgba32f', GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
 		['depth', GL.DEPTH_COMPONENT24, GL.DEPTH_COMPONENT, GL.UNSIGNED_INT, Uint32Array, 1]
-	])
+	] as const)
 		TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
 }
 

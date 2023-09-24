@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { updateObject } from '$lib/util.js';
+import { updateObject } from '$lib/util.ts';
 
 // Inspired by https://cargocollective.com/sagejenson/physarum
 export class Physarum {
