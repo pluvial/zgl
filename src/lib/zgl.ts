@@ -169,9 +169,9 @@ function parseBlend(s0) {
 }
 parseBlend = memoize(parseBlend);
 
-function compileShader(gl, code, type, program) {
+function compileShader(gl: GL, code: string, type: number, program: WebGLProgram) {
 	code = '#version 300 es\n' + code;
-	const shader = gl.createShader(type);
+	const shader = gl.createShader(type)!;
 	gl.shaderSource(shader, code);
 	gl.compileShader(shader);
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -185,8 +185,8 @@ function compileShader(gl, code, type, program) {
 	gl.deleteShader(shader);
 }
 
-function compileProgram(gl, vs, fs) {
-	const program = gl.createProgram();
+function compileProgram(gl: GL, vs: string, fs: string) {
+	const program = gl.createProgram()!;
 	compileShader(gl, vs, gl.VERTEX_SHADER, program);
 	compileShader(gl, fs, gl.FRAGMENT_SHADER, program);
 	gl.linkProgram(program);
@@ -394,7 +394,7 @@ function stripVaryings(VP) {
 	return VP.replace(/\bvarying\s+\w+/g, '');
 }
 
-function linkShader(gl, uniforms, Inc, VP, FP) {
+function linkShader(gl: GL, uniforms, Inc, VP, FP) {
 	const defined = definedUniforms([glsl_template, Inc, VP, FP].join('\n'));
 	const undefined = Object.entries(uniforms)
 		.filter((kv) => kv[0].match(/^\w+$/))
@@ -925,10 +925,11 @@ function wrapZGL(hook) {
 	return f;
 }
 
-export function zgl(canvas_gl) {
-	const gl = canvas_gl.getContext
-		? canvas_gl.getContext('webgl2', { alpha: false, antialias: true })
-		: canvas_gl;
+export function zgl(canvas_gl: HTMLCanvasElement | GL) {
+	const gl =
+		'getContext' in canvas_gl
+			? canvas_gl.getContext('webgl2', { alpha: false, antialias: true })!
+			: canvas_gl;
 	gl.getExtension('EXT_color_buffer_float');
 	gl.getExtension('OES_texture_float_linear');
 	gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
