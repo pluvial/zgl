@@ -1,14 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-
-	// import { DemoApp } from './demo/main.js';
-	import type { DemoApp } from './demo/main.js';
+	import { DemoApp } from './demo/main.js';
 	import demos from './demo/index.js';
 
 	let app: DemoApp;
 
-	onMount(async () => {
-		const { DemoApp } = await import('./demo/main.js');
+	onMount(() => {
 		app = new DemoApp(demos);
 	});
 

@@ -34,8 +34,7 @@
 
 import { updateObject } from './util.js';
 
-const GL = WebGL2RenderingContext;
-
+export const GL = globalThis.WebGL2RenderingContext;
 export type GL = WebGL2RenderingContext;
 
 type S =
@@ -85,7 +84,9 @@ type TextureFormat = {
 	// chn: number;
 };
 const TextureFormats = {} as Record<string, TextureFormat>;
-{
+
+let inited = false;
+function init() {
 	for (const t of ['FLOAT', 'INT', 'BOOL'] as const) {
 		const suf = t == 'FLOAT' ? 'f' : 'i';
 		Type2Setter[GL[t]] = 'uniform1' + suf;
@@ -110,6 +111,7 @@ const TextureFormats = {} as Record<string, TextureFormat>;
 		['depth', GL.DEPTH_COMPONENT24, GL.DEPTH_COMPONENT, GL.UNSIGNED_INT, Uint32Array, 1]
 	] as const)
 		TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
+	inited = true;
 }
 
 function memoize<T>(f: (k: string) => T) {
@@ -1097,6 +1099,7 @@ function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
 }
 
 export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
+	!inited && init();
 	const gl =
 		'getContext' in canvas_gl
 			? canvas_gl.getContext('webgl2', { alpha: false, antialias: true })!

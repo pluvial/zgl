@@ -1,11 +1,10 @@
 <script lang="ts">
-	// import { zgl } from '$lib/index.js';
 	import { onMount } from 'svelte';
+	import { zgl } from '$lib/index.js';
 
 	let canvas: HTMLCanvasElement;
 
-	onMount(async () => {
-		const { zgl } = await import('$lib/index.js');
+	onMount(() => {
 		const z = zgl(canvas);
 		z.loop(({ time }) => {
 			z.adjustCanvas();

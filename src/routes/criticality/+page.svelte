@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { TextureTarget } from '$lib/zgl.js';
+	import { zgl, type TextureTarget } from '$lib/zgl.js';
 
 	let canvas: HTMLCanvasElement;
 
-	onMount(async () => {
-		const { zgl } = await import('$lib/zgl.js');
+	onMount(() => {
 		const z = zgl(canvas);
 		const [W, H] = [40, 20];
 		const field = z({}, { size: [W, H], story: 2, tag: 'field' }) as TextureTarget[];
