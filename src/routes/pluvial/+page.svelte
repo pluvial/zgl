@@ -13,7 +13,7 @@
 				Aspect: 'cover',
 				FP: `
             sin(length(XY)*vec3(1,2,3)*7.
-            +atan(XY.x,XY.y)*3.),1`
+            -time/7.*vec3(3,1,2)+atan(XY.x,XY.y)*3.),1`
 			});
 		});
 	});
