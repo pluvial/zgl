@@ -1,58 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import type { DemoApp } from './demo/main.js';
-
 	// import { DemoApp } from './demo/main.js';
-	import { NeuralCA } from './demo/NeuralCA.js';
-	import { DotCamera } from './demo/DotCamera.js';
-	import { MeshGrid } from './demo/MeshGrid.js';
-	import { ParticleLife } from './demo/ParticleLife.js';
-	import { ParticleLife3d } from './demo/ParticleLife3d.js';
-	import { BitField } from './demo/BitField.js';
-	import { TextureSamplers } from './demo/TextureSamplers.js';
-	import { GameOfLife } from './demo/GameOfLife.js';
-	import { ParticleLenia } from './demo/ParticleLenia.js';
-	import { FancyLenia } from './demo/FancyLenia.js';
-	import { Spectrogram } from './demo/Spectrogram.js';
-	import { Physarum } from './demo/Physarum.js';
-	import { Physarum3d } from './demo/Physarum3d.js';
-	import { SurfaceNormals } from './demo/SurfaceNormals.js';
-	import { CubeDeform } from './demo/CubeDeform.js';
-	import { ColorCube } from './demo/ColorCube.js';
-	import { Shadowmap } from './demo/Shadowmap.js';
-	import { Torus4d } from './demo/Torus4d.js';
-	import { DeferredShading } from './demo/DeferredShading.js';
-	import { Springs } from './demo/Springs.js';
-	import { ReactionDiffusion } from './demo/ReactionDiffusion.js';
+	import type { DemoApp } from './demo/main.js';
+	import * as demos from './demo/index.js';
 
 	let app: DemoApp;
 
 	onMount(async () => {
 		const { DemoApp } = await import('./demo/main.js');
-		app = new DemoApp([
-			NeuralCA,
-			DotCamera,
-			MeshGrid,
-			ParticleLife,
-			ParticleLife3d,
-			BitField,
-			TextureSamplers,
-			GameOfLife,
-			ParticleLenia,
-			FancyLenia,
-			Spectrogram,
-			Physarum,
-			Physarum3d,
-			SurfaceNormals,
-			CubeDeform,
-			ColorCube,
-			Shadowmap,
-			Torus4d,
-			DeferredShading,
-			Springs,
-			ReactionDiffusion
-		]);
+		app = new DemoApp(demos);
 	});
 
 	function fullscreen() {

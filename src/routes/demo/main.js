@@ -7,11 +7,12 @@ const setDisplay = (el, val) => {
 
 export class DemoApp {
 	constructor(demos, defaultDemo = 'ParticleLife3d') {
-		this.singleMode = demos.length == 1;
+		const keys = Object.keys(demos);
+		this.singleMode = keys.length == 1;
 		if (this.singleMode) {
-			defaultDemo = demos[0].name;
+			defaultDemo = keys[0];
 		}
-		this.demos = Object.fromEntries(demos.map((c) => [c.name, c]));
+		this.demos = demos;
 
 		this.canvas = document.getElementById('c');
 		const gl = this.canvas.getContext('webgl2', {
