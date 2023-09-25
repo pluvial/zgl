@@ -34,6 +34,8 @@
 
 import { updateObject } from './util.js';
 
+const GL = WebGL2RenderingContext;
+
 type GL = WebGL2RenderingContext;
 
 type S =
@@ -84,7 +86,6 @@ type TextureFormat = {
 };
 const TextureFormats = {} as Record<string, TextureFormat>;
 {
-	const GL = WebGL2RenderingContext;
 	for (const t of ['FLOAT', 'INT', 'BOOL'] as const) {
 		const suf = t == 'FLOAT' ? 'f' : 'i';
 		Type2Setter[GL[t]] = 'uniform1' + suf;
@@ -130,7 +131,6 @@ function parseBlendImpl(s0?: string): Res | null | undefined {
 	if (!s0) return;
 	let s = s0.replace(/\s+/g, '');
 	if (!s) return null;
-	const GL = WebGL2RenderingContext;
 	const func2gl = {
 		min: GL.MIN,
 		max: GL.MAX,
@@ -457,12 +457,18 @@ type TextureSamplerCore = {
 };
 
 class TextureSampler implements TextureSamplerCore {
+	// @ts-ignore
 	gl: GL & { _samplers?: Record<string, WebGLSampler> };
+	// @ts-ignore
 	handle: WebGLTexture & { hasMipmap?: boolean };
+	// @ts-ignore
 	gltarget: number;
+	// @ts-ignore
 	layern: number | null;
 	// filter: 'linear' | 'nearest' | 'miplinear';
+	// @ts-ignore
 	filter: Filter;
+	// @ts-ignore
 	wrap: Wrap;
 	fork(updates: Partial<TextureSamplerCore>) {
 		const { gl, handle, gltarget, layern, filter, wrap } = { ...this, ...updates };
@@ -547,11 +553,15 @@ type TargetParams = {
 	depth?: TextureTarget | null;
 };
 
-class TextureTarget extends TextureSampler {
+export class TextureTarget extends TextureSampler {
+	// @ts-ignore
 	size: [number, number];
+	// @ts-ignore
 	_tag: string;
+	// @ts-ignore
 	format: string;
 	formatInfo: TextureFormat;
+	// @ts-ignore
 	depth: TextureTarget | null;
 	fbo?: WebGLFramebuffer;
 	cpu?: CpuArray;
@@ -761,7 +771,7 @@ class TextureTarget extends TextureSampler {
 	}
 }
 
-type Aspect = 'fit' | 'cover' | 'x' | 'y' | 'mean';
+type Aspect = 'fit' | 'cover' | 'mean' | 'x' | 'y';
 function calcAspect(aspect: Aspect | null | undefined, w: number, h: number): [number, number] {
 	if (!aspect) return [1, 1];
 	let c;
@@ -932,7 +942,7 @@ type Options = {
 	Clear: number | [number, number, number, number];
 	Blend: string;
 	View: [number, number] | [number, number, number, number];
-	Grid: [number, number, number];
+	Grid: [number, number];
 	Mesh: [number, number];
 	Aspect: Aspect;
 	DepthTest: boolean | 'keep';
@@ -948,14 +958,15 @@ type Uniforms = {
 	Mesh: [number, number];
 };
 
-type Params = Partial<Options & Uniforms>;
+type Params = Partial<Options & Record<string, any>>;
 
 type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
 
-function drawQuads(self: Self, params: Params, target?: Target) {
+function drawQuads(self: Self, params: Params, target?: Target): TextureTarget | TextureTarget[] {
 	const options = {} as Options,
 		uniforms = {} as Uniforms;
 	for (const p in params) {
+		// @ts-ignore
 		(OptNames.has(p) ? options : uniforms)[p] = params[p];
 	}
 	const [Inc, VP, FP] = [options.Inc || '', options.VP || '', options.FP || ''];
@@ -1054,32 +1065,34 @@ function drawQuads(self: Self, params: Params, target?: Target) {
 	return textureTarget;
 }
 
-function wrapZGL(this: ZGL, hook: (z: ZGL, params: Params, target: Target) => void) {
+type Hook = (z: ZGL, params: Params, target: Target) => void;
+
+type ZGL = {
+	(params: Params, target?: Target): TextureTarget | TextureTarget[];
+	hook: (hook: Hook) => WrappedZGL;
+	gl: GL;
+	buffers: Buffers;
+	shaders: Shaders;
+	reset(): void;
+	adjustCanvas(dpr?: number): void;
+	loop(callback: (arg: { z: ZGL; time: number }) => any): void;
+};
+
+type WrappedZGL = {
+	(params: Params, target: Target): void;
+	hook: (this: ZGL, hook: Hook) => any;
+	gl: GL;
+};
+
+function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
 	const z = this;
-	const f = (params: Params, target: Target) => hook(z, params, target);
+	const f: WrappedZGL = (params: Params, target: Target) => hook(z, params, target);
 	f.hook = wrapZGL;
 	f.gl = z.gl;
 	return f;
 }
 
-type ZGL = {
-	(params: Options & Uniforms, target?: WebGLTexture | WebGLTexture[] | Record<string, Spec>):
-		| WebGLTexture
-		| undefined;
-	hook: (hook: (z: ZGL) => any) => {
-		(params: any, target: any): any;
-		hook: typeof wrapZGL;
-		gl: any;
-	};
-	gl: WebGL2RenderingContext;
-	buffers: Buffers;
-	shaders: Shaders;
-	reset(): void;
-	adjustCanvas(dpr?: number): void;
-	loop(callback: any): void;
-};
-
-export function zgl(canvas_gl: HTMLCanvasElement | GL) {
+export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
 	const gl =
 		'getContext' in canvas_gl
 			? canvas_gl.getContext('webgl2', { alpha: false, antialias: true })!
@@ -1089,39 +1102,36 @@ export function zgl(canvas_gl: HTMLCanvasElement | GL) {
 	gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
 	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 	ensureVertexArray(gl, 1024);
-	const z: ZGL = (
-		params: Options & Uniforms,
-		target?: WebGLTexture | WebGLTexture[] | Record<string, Spec>
-	) => drawQuads(z, params, target);
-	z.hook = wrapZGL;
-
-	z.gl = gl;
-	z.shaders = {};
-	z.buffers = {};
-	z.reset = () => {
-		Object.values(z.shaders).forEach((prog) => gl.deleteProgram(prog));
-		Object.values(z.buffers)
-			.flat()
-			.forEach((target) => target.free());
-		z.shaders = {};
-		z.buffers = {};
-	};
-	z.adjustCanvas = (dpr?: number) => {
-		dpr = dpr || self.devicePixelRatio;
-		const canvas = gl.canvas as HTMLCanvasElement;
-		const w = canvas.clientWidth * dpr,
-			h = canvas.clientHeight * dpr;
-		if (canvas.width != w || canvas.height != h) {
-			canvas.width = w;
-			canvas.height = h;
+	const z: ZGL = Object.assign((params: Params, target?: Target) => drawQuads(z, params, target), {
+		hook: wrapZGL,
+		gl,
+		shaders: {},
+		buffers: {},
+		reset() {
+			Object.values(z.shaders).forEach((prog) => gl.deleteProgram(prog));
+			Object.values(z.buffers)
+				.flat()
+				.forEach((target) => target.free());
+			z.shaders = {};
+			z.buffers = {};
+		},
+		adjustCanvas(dpr?: number) {
+			dpr = dpr || self.devicePixelRatio;
+			const canvas = gl.canvas as HTMLCanvasElement;
+			const w = canvas.clientWidth * dpr,
+				h = canvas.clientHeight * dpr;
+			if (canvas.width != w || canvas.height != h) {
+				canvas.width = w;
+				canvas.height = h;
+			}
+		},
+		loop(callback: (arg: { z: ZGL; time: number }) => any) {
+			requestAnimationFrame(function frameFunc(time) {
+				const res = callback({ z, time: time / 1000.0 });
+				if (res != 'stop') requestAnimationFrame(frameFunc);
+			});
 		}
-	};
-	z.loop = (callback: (arg: { z: ZGL; time: number }) => any) => {
-		const frameFunc = (time: number) => {
-			const res = callback({ z, time: time / 1000.0 });
-			if (res != 'stop') requestAnimationFrame(frameFunc);
-		};
-		requestAnimationFrame(frameFunc);
-	};
+	});
+
 	return z;
 }

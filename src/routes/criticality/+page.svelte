@@ -1,23 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { TextureTarget } from '$lib/zgl.js';
+
 	let canvas: HTMLCanvasElement;
 
 	onMount(async () => {
-		const { zgl } = await import('$lib/zgl.ts');
+		const { zgl } = await import('$lib/zgl.js');
 		const z = zgl(canvas);
 		const [W, H] = [40, 20];
-		const field = z({}, { size: [W, H], story: 2, tag: 'field' });
+		const field = z({}, { size: [W, H], story: 2, tag: 'field' }) as TextureTarget[];
 		const stepInterval = 0.2;
 		const coefs = { spont: 0.001, propagation: 1.1 };
 
-		const shuffle = (n) =>
+		const shuffle = (n: number) =>
 			Array(n)
+				// @ts-ignore
 				.fill()
 				.map((_, i) => [Math.random(), i])
 				.sort()
 				.map((p) => p[1]);
-		const clamp = (x, a, b) => Math.max(a, Math.min(x, b));
-		const smoothstep = (t) => t * t * (3.0 - 2.0 * t);
+		const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(x, b));
+		const smoothstep = (t: number) => t * t * (3.0 - 2.0 * t);
 
 		const shuffleTex = z(
 			{},
@@ -74,7 +77,7 @@
 				W,
 				H,
 				shuffleTex,
-				Aspect: 'x',
+				Aspect: 'x' as const,
 				Inc: `
         vec2 nodePos(ivec2 id) {
             float i = shuffleTex(id).x;
