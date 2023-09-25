@@ -3,7 +3,7 @@
 
 	// import { DemoApp } from './demo/main.js';
 	import type { DemoApp } from './demo/main.js';
-	import * as demos from './demo/index.js';
+	import demos from './demo/index.js';
 
 	let app: DemoApp;
 

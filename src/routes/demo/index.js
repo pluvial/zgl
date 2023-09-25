@@ -1,21 +1,45 @@
-export { NeuralCA } from './NeuralCA.js';
-export { DotCamera } from './DotCamera.js';
-export { MeshGrid } from './MeshGrid.js';
-export { ParticleLife } from './ParticleLife.js';
-export { ParticleLife3d } from './ParticleLife3d.js';
-export { BitField } from './BitField.js';
-export { TextureSamplers } from './TextureSamplers.js';
-export { GameOfLife } from './GameOfLife.js';
-export { ParticleLenia } from './ParticleLenia.js';
-export { FancyLenia } from './FancyLenia.js';
-export { Spectrogram } from './Spectrogram.js';
-export { Physarum } from './Physarum.js';
-export { Physarum3d } from './Physarum3d.js';
-export { SurfaceNormals } from './SurfaceNormals.js';
-export { CubeDeform } from './CubeDeform.js';
-export { ColorCube } from './ColorCube.js';
-export { Shadowmap } from './Shadowmap.js';
-export { Torus4d } from './Torus4d.js';
-export { DeferredShading } from './DeferredShading.js';
-export { Springs } from './Springs.js';
-export { ReactionDiffusion } from './ReactionDiffusion.js';
+import NeuralCA from './NeuralCA.js';
+import DotCamera from './DotCamera.js';
+import MeshGrid from './MeshGrid.js';
+import ParticleLife from './ParticleLife.js';
+import ParticleLife3d from './ParticleLife3d.js';
+import BitField from './BitField.js';
+import TextureSamplers from './TextureSamplers.js';
+import GameOfLife from './GameOfLife.js';
+import ParticleLenia from './ParticleLenia.js';
+import FancyLenia from './FancyLenia.js';
+import Spectrogram from './Spectrogram.js';
+import Physarum from './Physarum.js';
+import Physarum3d from './Physarum3d.js';
+import SurfaceNormals from './SurfaceNormals.js';
+import CubeDeform from './CubeDeform.js';
+import ColorCube from './ColorCube.js';
+import Shadowmap from './Shadowmap.js';
+import Torus4d from './Torus4d.js';
+import DeferredShading from './DeferredShading.js';
+import Springs from './Springs.js';
+import ReactionDiffusion from './ReactionDiffusion.js';
+
+export default {
+	NeuralCA,
+	DotCamera,
+	MeshGrid,
+	ParticleLife,
+	ParticleLife3d,
+	BitField,
+	TextureSamplers,
+	GameOfLife,
+	ParticleLenia,
+	FancyLenia,
+	Spectrogram,
+	Physarum,
+	Physarum3d,
+	SurfaceNormals,
+	CubeDeform,
+	ColorCube,
+	Shadowmap,
+	Torus4d,
+	DeferredShading,
+	Springs,
+	ReactionDiffusion
+};

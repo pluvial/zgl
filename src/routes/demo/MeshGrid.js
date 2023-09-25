@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export class MeshGrid {
+export default class MeshGrid {
 	static Tags = ['2d'];
 	frame(glsl, { time }) {
 		glsl({

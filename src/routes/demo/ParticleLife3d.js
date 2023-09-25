@@ -4,9 +4,9 @@
  */
 
 // Inspired by the video https://youtu.be/p4YirERTVF0?t=480
-import { ParticleLife } from './ParticleLife.js';
-import { Shadowmap } from './Shadowmap.js';
-export class ParticleLife3d extends ParticleLife {
+import ParticleLife from './ParticleLife.js';
+import Shadowmap from './Shadowmap.js';
+export default class ParticleLife3d extends ParticleLife {
 	static Tags = ['3d', 'simulation', 'shadows'];
 
 	constructor(glsl, gui) {

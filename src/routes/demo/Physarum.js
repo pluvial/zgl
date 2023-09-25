@@ -6,7 +6,7 @@
 import { updateObject } from '$lib/util.ts';
 
 // Inspired by https://cargocollective.com/sagejenson/physarum
-export class Physarum {
+export default class Physarum {
 	static Tags = ['2d', 'simulation'];
 
 	constructor(glsl, gui) {

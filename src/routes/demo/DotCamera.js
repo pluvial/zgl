@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export class DotCamera {
+export default class DotCamera {
 	constructor(glsl, gui) {
 		this.video = document.createElement('video');
 		this.dayMode = false;

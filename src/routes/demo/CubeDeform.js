@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export class CubeDeform {
+export default class CubeDeform {
 	static Tags = ['3d'];
 
 	frame(glsl, params) {
