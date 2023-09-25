@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { zgl, type TextureTarget } from '$lib/zgl.js';
+	import zgl, { type TextureTarget } from '$lib/index.js';
 
 	let canvas: HTMLCanvasElement;
 

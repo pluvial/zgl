@@ -1,4 +1,4 @@
-import { zgl, type WrappedZGL, type ZGL, type GL } from '$lib/zgl.js';
+import zgl, { type GL, type WrappedZGL, type ZGL } from '$lib/index.js';
 
 const $ = (s: string) => document.querySelector(s);
 const setDisplay = (el: string, val: string) => {
@@ -65,7 +65,10 @@ export class DemoApp {
             }
         `;
 
-	constructor(public demos: Record<string, Demo>, defaultDemo = 'ParticleLife3d') {
+	constructor(
+		public demos: Record<string, Demo>,
+		defaultDemo = 'ParticleLife3d'
+	) {
 		const keys = Object.keys(demos);
 		this.singleMode = keys.length == 1;
 		if (this.singleMode) {
