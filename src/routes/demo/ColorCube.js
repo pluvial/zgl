@@ -6,8 +6,8 @@
 export default class ColorCube {
 	static Tags = ['3d'];
 
-	frame(glsl, params) {
-		glsl({
+	frame(z, params) {
+		z({
 			...params,
 			Grid: [10, 10, 10],
 			Clear: [0.2, 0.2, 0.3, 1],

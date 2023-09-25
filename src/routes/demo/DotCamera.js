@@ -4,7 +4,7 @@
  */
 
 export default class DotCamera {
-	constructor(glsl, gui) {
+	constructor(z, gui) {
 		this.video = document.createElement('video');
 		this.dayMode = false;
 		gui.add(this, 'dayMode');
@@ -21,19 +21,19 @@ export default class DotCamera {
 			});
 	}
 
-	frame(glsl, { time, canvasSize }) {
+	frame(z, { time, canvasSize }) {
 		let tex;
 		if (this.video.videoWidth) {
-			tex = glsl({}, { data: this.video, tag: 'video' });
+			tex = z({}, { data: this.video, tag: 'video' });
 		} else {
-			tex = glsl(
+			tex = z(
 				{ time, FP: `step(0.0, sin(length(XY)*20.0-time*3.0+atan(XY.x,XY.y)*3.))*0.25` },
 				{ size: [512, 512], tag: 'tmp' }
 			);
 		}
 		const blendParams = this.dayMode ? { Clear: 1, Blend: 'd-s' } : { Clear: 0, Blend: 'd+s' };
 		const rgbMode = this.rgbMode;
-		const lum = glsl(
+		const lum = z(
 			{
 				tex: tex.edge.linear,
 				...blendParams,
@@ -47,7 +47,7 @@ export default class DotCamera {
 			},
 			{ scale: 1 / 2, tag: 'lum' }
 		);
-		const merged = glsl(
+		const merged = z(
 			{
 				T: lum.edge.miplinear,
 				FP: `
@@ -56,7 +56,7 @@ export default class DotCamera {
 			},
 			{ size: lum.size, format: 'rgba16f', tag: 'merged' }
 		);
-		const imgForce = glsl(
+		const imgForce = z(
 			{
 				T: merged.edge,
 				FP: `
@@ -68,13 +68,13 @@ export default class DotCamera {
 		);
 
 		const arg = { canvasSize, rgbMode };
-		const field = glsl(
+		const field = z(
 			{},
 			{ scale: 1 / 4, format: 'rgba16f', layern: 3, filter: 'linear', tag: 'field' }
 		);
 		let points;
 		for (let i = 0; i < 10; ++i) {
-			points = glsl(
+			points = z(
 				{
 					...arg,
 					field: field.edge,
@@ -96,7 +96,7 @@ export default class DotCamera {
 				},
 				{ scale: (rgbMode ? 1.7 : 1) / 8, story: 2, format: 'rgba32f', tag: 'points' }
 			);
-			glsl(
+			z(
 				{
 					...arg,
 					points: points[0],
@@ -115,7 +115,7 @@ export default class DotCamera {
 			);
 		}
 		// draw dots on screen
-		glsl({
+		z({
 			...arg,
 			points: points[0],
 			Grid: points[0].size,

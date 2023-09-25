@@ -918,10 +918,10 @@ function drawQuads(self, params, target) {
 }
 
 function wrapZGL(hook) {
-	const glsl = this;
-	const f = (params, target) => hook(glsl, params, target);
+	const z = this;
+	const f = (params, target) => hook(z, params, target);
 	f.hook = wrapZGL;
-	f.gl = glsl.gl;
+	f.gl = z.gl;
 	return f;
 }
 
@@ -934,21 +934,21 @@ export function zgl(canvas_gl) {
 	gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
 	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 	ensureVertexArray(gl, 1024);
-	const glsl = (params, target) => drawQuads(glsl, params, target);
-	glsl.hook = wrapZGL;
+	const z = (params, target) => drawQuads(z, params, target);
+	z.hook = wrapZGL;
 
-	glsl.gl = gl;
-	glsl.shaders = {};
-	glsl.buffers = {};
-	glsl.reset = () => {
-		Object.values(glsl.shaders).forEach((prog) => gl.deleteProgram(prog));
-		Object.values(glsl.buffers)
+	z.gl = gl;
+	z.shaders = {};
+	z.buffers = {};
+	z.reset = () => {
+		Object.values(z.shaders).forEach((prog) => gl.deleteProgram(prog));
+		Object.values(z.buffers)
 			.flat()
 			.forEach((target) => target.free());
-		glsl.shaders = {};
-		glsl.buffers = {};
+		z.shaders = {};
+		z.buffers = {};
 	};
-	glsl.adjustCanvas = (dpr) => {
+	z.adjustCanvas = (dpr?: number) => {
 		dpr = dpr || self.devicePixelRatio;
 		const canvas = gl.canvas;
 		const w = canvas.clientWidth * dpr,
@@ -958,12 +958,12 @@ export function zgl(canvas_gl) {
 			canvas.height = h;
 		}
 	};
-	glsl.loop = (callback) => {
+	z.loop = (callback) => {
 		const frameFunc = (time) => {
-			const res = callback({ glsl, time: time / 1000.0 });
+			const res = callback({ z, time: time / 1000.0 });
 			if (res != 'stop') requestAnimationFrame(frameFunc);
 		};
 		requestAnimationFrame(frameFunc);
 	};
-	return glsl;
+	return z;
 }

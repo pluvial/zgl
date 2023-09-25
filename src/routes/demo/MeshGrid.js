@@ -5,8 +5,8 @@
 
 export default class MeshGrid {
 	static Tags = ['2d'];
-	frame(glsl, { time }) {
-		glsl({
+	frame(z, { time }) {
+		z({
 			time,
 			Grid: [5, 5],
 			Mesh: [4, 4],

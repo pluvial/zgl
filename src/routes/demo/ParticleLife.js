@@ -6,8 +6,8 @@
 // Inspired by the video https://youtu.be/p4YirERTVF0?t=480
 export default class ParticleLife {
 	static Tags = ['2d', 'simulation'];
-	constructor(glsl, gui) {
-		this.glsl = glsl;
+	constructor(z, gui) {
+		this.z = z;
 		this.step_n = 1;
 		this.dt = 0.1;
 		this.worldExtent = 15.0;
@@ -20,17 +20,17 @@ export default class ParticleLife {
 		gui.add(this, 'inertia', 0.0, 1.0);
 		gui.add(this, 'reset');
 		const K = (this.K = 6);
-		this.F = glsl(
+		this.F = z(
 			{ K, FP: `float(I.x==I.y) + 0.1*float(I.x==(I.y+1)%int(K))` },
 			{ size: [K, K], format: 'r16f', tag: 'F' }
 		);
-		this.points = glsl({}, { size: [30, 10], story: 3, format: 'rgba32f', tag: 'points' });
+		this.points = z({}, { size: [30, 10], story: 3, format: 'rgba32f', tag: 'points' });
 		this.reset();
 	}
 
 	reset() {
 		for (let i = 0; i < 2; ++i) {
-			this.glsl(
+			this.z(
 				{
 					K: this.K,
 					seed: 123,
@@ -48,7 +48,7 @@ export default class ParticleLife {
 		touchPos = touchPos || [-1000, 0, 0];
 		const { K, F, points, worldExtent, repulsion, inertia, dt } = this;
 		for (let i = 0; i < this.step_n; ++i)
-			this.glsl(
+			this.z(
 				{
 					F,
 					touchPos,
@@ -86,7 +86,7 @@ export default class ParticleLife {
 			);
 	}
 
-	frame(glsl, params) {
+	frame(z, params) {
 		const { K, points, worldExtent } = this;
 		let touchPos;
 		if (params.pointer[2]) {
@@ -96,7 +96,7 @@ export default class ParticleLife {
 		}
 		this.step(touchPos);
 
-		const field = glsl(
+		const field = z(
 			{
 				K,
 				worldExtent,
@@ -113,9 +113,9 @@ export default class ParticleLife {
 			},
 			{ size: [256, 256], format: 'rgba16f', filter: 'linear', tag: 'field' }
 		);
-		glsl({ field, Aspect: 'fit', FP: `sqrt(field(UV))*0.07` });
+		z({ field, Aspect: 'fit', FP: `sqrt(field(UV))*0.07` });
 
-		glsl({
+		z({
 			K,
 			worldExtent,
 			points: points[0],

@@ -10,8 +10,8 @@ import ParticleLenia from './ParticleLenia.js';
 export default class FancyLenia extends ParticleLenia {
 	static Tags = ['3d', 'simulation', 'audio'];
 
-	constructor(glsl, gui) {
-		super(glsl, gui);
+	constructor(z, gui) {
+		super(z, gui);
 		this.meanEnergy = 0.0;
 		gui.add(this, 'meanEnergy', 0.0, 1.0, 0.001).listen();
 		this.volume = 0.5;
@@ -20,7 +20,7 @@ export default class FancyLenia extends ParticleLenia {
 	}
 	reset() {
 		super.reset();
-		this.trails = this.glsl(
+		this.trails = this.z(
 			{ Clear: 0 },
 			{ size: [1024, 1024], format: 'r8', filter: 'linear', tag: 'trails' }
 		);
@@ -28,8 +28,8 @@ export default class FancyLenia extends ParticleLenia {
 
 	step() {
 		super.step();
-		const { glsl, trails } = this;
-		glsl({ Blend: 'd-s', FP: `2./255.` }, trails);
+		const { z, trails } = this;
+		z({ Blend: 'd-s', FP: `2./255.` }, trails);
 		this.renderSpots(trails, 0.2);
 	}
 
@@ -38,8 +38,8 @@ export default class FancyLenia extends ParticleLenia {
 			this.step();
 		}
 
-		const { params, viewR, state, trails, glsl } = this;
-		const fieldU = glsl(
+		const { params, viewR, state, trails, z } = this;
+		const fieldU = z(
 			{
 				...params,
 				viewR,
@@ -57,7 +57,7 @@ export default class FancyLenia extends ParticleLenia {
 		);
 
 		const viewParams = { viewR, ...cameraParams, scaleU: 0.25, DepthTest: 1, Aspect: 'mean' };
-		glsl({
+		z({
 			fieldU,
 			trails,
 			...params,
@@ -80,7 +80,7 @@ export default class FancyLenia extends ParticleLenia {
         FOut = mix(FOut, vec4(1), trails(UV).x);`
 		});
 
-		glsl({
+		z({
 			state: state[0],
 			Grid: state[0].size,
 			Mesh: [32, 8],
@@ -98,7 +98,7 @@ export default class FancyLenia extends ParticleLenia {
         FOut = vec4(vec3(1.0-a*a*0.75), 1.0);`
 		});
 
-		glsl(
+		z(
 			{
 				state: state[0],
 				FP: `
@@ -114,7 +114,7 @@ export default class FancyLenia extends ParticleLenia {
 		).read((d) => (this.meanEnergy = d[0]));
 
 		if (this.audio) {
-			glsl({
+			z({
 				T: this.audio,
 				Grid: this.audio.size,
 				Blend: 's+d',
@@ -147,7 +147,7 @@ export default class FancyLenia extends ParticleLenia {
 		const n = e.buf.length / 2;
 		const dt = n / e.sampleRate;
 		const [s1, s0] = this.state;
-		this.phase_vol = this.glsl(
+		this.phase_vol = this.z(
 			{
 				s0,
 				s1,
@@ -161,7 +161,7 @@ export default class FancyLenia extends ParticleLenia {
 			{ size: s0.size, story: 2, format: 'rg32f', tag: 'phase_vol' }
 		);
 		const [p1, p0] = this.phase_vol;
-		this.audio = this.glsl(
+		this.audio = this.z(
 			{
 				dt,
 				p0,

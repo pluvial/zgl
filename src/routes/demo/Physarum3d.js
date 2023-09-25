@@ -6,12 +6,12 @@
 export default class Physarum3d {
 	static Tags = ['3d'];
 
-	constructor(glsl, gui) {
+	constructor(z, gui) {
 		this.showVolume = true;
 		gui.add(this, 'showVolume');
 	}
 
-	frame(glsl, params) {
+	frame(z, params) {
 		const D = 14,
 			Inc = `const int D=${D}, D2=D*D;
         ivec2 pos2field(vec3 p) {
@@ -20,7 +20,7 @@ export default class Physarum3d {
         }`;
 
 		// diffusion
-		const field = glsl(
+		const field = z(
 			{
 				Inc,
 				FP: `
@@ -35,7 +35,7 @@ export default class Physarum3d {
 		);
 
 		// agent motion
-		const points = glsl(
+		const points = z(
 			{
 				Inc,
 				field: field[0],
@@ -68,7 +68,7 @@ export default class Physarum3d {
 		);
 
 		// deposit
-		glsl(
+		z(
 			{
 				points: points[0],
 				Grid: points[0].size,
@@ -86,7 +86,7 @@ export default class Physarum3d {
 		);
 
 		// render agents
-		glsl({
+		z({
 			...params,
 			Aspect: 'fit',
 			DepthTest: 1,
@@ -106,7 +106,7 @@ export default class Physarum3d {
 
 		// fake volume rendering
 		if (this.showVolume) {
-			glsl({
+			z({
 				...params,
 				T: field[0],
 				Grid: [(D * D) / 2, 3],

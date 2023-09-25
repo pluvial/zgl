@@ -6,8 +6,8 @@
 export default class CubeDeform {
 	static Tags = ['3d'];
 
-	frame(glsl, params) {
-		glsl({
+	frame(z, params) {
+		z({
 			...params,
 			Grid: [6, 1],
 			Mesh: [20, 20],

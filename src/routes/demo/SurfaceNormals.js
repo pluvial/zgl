@@ -6,8 +6,8 @@
 export default class SurfaceNormals {
 	static Tags = ['3d'];
 
-	frame(glsl, params) {
-		glsl({
+	frame(z, params) {
+		z({
 			...params,
 			Mesh: [64, 128],
 			Grid: [5, 5],

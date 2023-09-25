@@ -7,7 +7,7 @@
 export default class Spectrogram {
 	static Tags = ['3d', 'data'];
 
-	constructor(glsl, gui) {
+	constructor(z, gui) {
 		navigator.mediaDevices
 			.getUserMedia({ audio: true })
 			.then((stream) => {
@@ -22,20 +22,20 @@ export default class Spectrogram {
 			.catch((e) => console.error('Error getting microphone:', e));
 	}
 
-	frame(glsl, params) {
+	frame(z, params) {
 		if (!this.analyser) return;
 		this.analyser.getByteFrequencyData(this.frequencyArray);
 		const n = this.frequencyArray.length;
 		const histLen = 256;
-		const spectro = glsl(
+		const spectro = z(
 			{},
 			{ size: [n, 1], format: 'r8', data: this.frequencyArray, tag: 'spectro' }
 		);
-		const history = glsl(
+		const history = z(
 			{ spectro, FP: 'I.y>0 ? Src(I-ivec2(0,1)) : spectro(ivec2(I.x,0))' },
 			{ size: [n, histLen], story: 2, wrap: 'edge', tag: 'history' }
 		);
-		glsl({
+		z({
 			...params,
 			history: history[0],
 			Mesh: [n - 1, histLen - 1],

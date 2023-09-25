@@ -4,9 +4,9 @@
 
 	onMount(async () => {
 		const { zgl } = await import('$lib/zgl.ts');
-		const glsl = zgl(canvas);
+		const z = zgl(canvas);
 		const [W, H] = [40, 20];
-		const field = glsl({}, { size: [W, H], story: 2, tag: 'field' });
+		const field = z({}, { size: [W, H], story: 2, tag: 'field' });
 		const stepInterval = 0.2;
 		const coefs = { spont: 0.001, propagation: 1.1 };
 
@@ -19,7 +19,7 @@
 		const clamp = (x, a, b) => Math.max(a, Math.min(x, b));
 		const smoothstep = (t) => t * t * (3.0 - 2.0 * t);
 
-		const shuffleTex = glsl(
+		const shuffleTex = z(
 			{},
 			{ size: [W, H], format: 'r32f', tag: 'shuffle', data: new Float32Array(shuffle(W * H)) }
 		);
@@ -31,12 +31,12 @@
 			phaseDir *= -1;
 		});
 
-		glsl.loop(({ time }) => {
-			glsl.adjustCanvas();
+		z.loop(({ time }) => {
+			z.adjustCanvas();
 			if (time - lastStep > stepInterval) {
 				lastStep = time;
 				// compute mean activations
-				const avg = glsl(
+				const avg = z(
 					{
 						F: field[0],
 						FP: `
@@ -50,7 +50,7 @@
 					{ size: [W, 1], tag: 'avg' }
 				);
 				// propagate activations
-				glsl(
+				z(
 					{
 						...coefs,
 						avg,
@@ -85,7 +85,7 @@
 			};
 
 			// draw edges
-			glsl({
+			z({
 				...common,
 				Grid: [W - 1, H],
 				Blend: 's*sa+d*(1-sa)',
@@ -100,7 +100,7 @@
 
 			// draw nodes
 			const t = (time - lastStep) / stepInterval;
-			glsl({
+			z({
 				...common,
 				t,
 				F: field[0],

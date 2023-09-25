@@ -15,8 +15,8 @@ export default class NeuralCA {
 		]);
 		this.b = new Float32Array([2, -5, -14, 9]);
 	}
-	frame(glsl) {
-		const state = glsl(
+	frame(z) {
+		const state = z(
 			{
 				W: this.W,
 				b: this.b,
@@ -47,6 +47,6 @@ export default class NeuralCA {
 			},
 			{ story: 2, scale: 1 / 4, tag: 'state' }
 		);
-		glsl({ tex: state[0], FP: `tex(UV)*2.-.5` });
+		z({ tex: state[0], FP: `tex(UV)*2.-.5` });
 	}
 }

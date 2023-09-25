@@ -6,8 +6,8 @@
 export default class Springs {
 	static Tags = ['2d'];
 
-	constructor(glsl, gui) {
-		this.glsl = glsl;
+	constructor(z, gui) {
+		this.z = z;
 		this.reset();
 		this.params = { waveRate: 4.0 };
 		gui.add(this, 'reset');
@@ -15,9 +15,9 @@ export default class Springs {
 	}
 
 	reset() {
-		const { glsl } = this;
+		const { z } = this;
 		for (let i = 0; i < 2; ++i)
-			this.points = glsl(
+			this.points = z(
 				{
 					FP: `
             XY*rot2(PI+0.1)*0.6+vec2(0,0.3),0,(UV.x+UV.y)*10.0
@@ -27,10 +27,10 @@ export default class Springs {
 			);
 	}
 
-	frame(glsl, { time }) {
+	frame(z, { time }) {
 		const { points } = this;
 
-		const next = glsl(
+		const next = z(
 			{
 				time,
 				...this.params,
@@ -51,7 +51,7 @@ export default class Springs {
 		);
 
 		for (let i = 0; i < 8; ++i)
-			glsl(
+			z(
 				{
 					time,
 					FP: `
@@ -84,12 +84,12 @@ export default class Springs {
 				},
 				next
 			);
-		glsl({ next: next[0], FP: `next(I)` }, points);
+		z({ next: next[0], FP: `next(I)` }, points);
 
-		glsl({ FP: `float(XY.y<-0.8)*0.5` });
+		z({ FP: `float(XY.y<-0.8)*0.5` });
 
 		const [w, h] = points[0].size;
-		glsl({
+		z({
 			points: next[0],
 			Mesh: [w - 1, h - 1],
 			Aspect: 'y',

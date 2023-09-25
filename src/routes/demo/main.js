@@ -20,7 +20,7 @@ export class DemoApp {
 			antialias: true,
 			xrCompatible: true
 		});
-		this.glsl = zgl(gl);
+		this.z = zgl(gl);
 		this.demo = null;
 		this.gui = null;
 
@@ -86,10 +86,10 @@ export class DemoApp {
                 return wld2proj(vec4(p,1.0));
             }
         `;
-		this.withCamera = this.glsl.hook((glsl, params, target) => {
+		this.withCamera = this.z.hook((z, params, target) => {
 			params = { ...params, Inc: this.glsl_include + (params.Inc || '') };
 			if (target || !params.xrMode) {
-				return glsl(params, target);
+				return z(params, target);
 			}
 			delete params.Aspect;
 			let glLayer = this.xrSession.renderState.baseLayer;
@@ -106,7 +106,7 @@ export class DemoApp {
 				params.xrViewMatrix = view.transform.inverse.matrix;
 				let { x, y, z } = view.transform.position;
 				params.xrPosition = [x, y, z];
-				glsl(params, target);
+				z(params, target);
 			}
 		});
 
@@ -154,7 +154,7 @@ export class DemoApp {
 	frame(t) {
 		requestAnimationFrame(this.frame.bind(this));
 		if (this.xrSession) return; // skip canvas frames when XR is running
-		this.glsl.adjustCanvas(1); // fix devicePixelRatio to 1
+		this.z.adjustCanvas(1); // fix devicePixelRatio to 1
 		this.viewParams.canvasSize.set([this.canvas.clientWidth, this.canvas.clientHeight]);
 
 		this.demo.frame(this.withCamera, {
@@ -235,7 +235,7 @@ export class DemoApp {
 				session.addEventListener('end', () => {
 					this.xrSession = null;
 				});
-				session.updateRenderState({ baseLayer: new XRWebGLLayer(session, this.glsl.gl) });
+				session.updateRenderState({ baseLayer: new XRWebGLLayer(session, this.z.gl) });
 				session.requestReferenceSpace('local').then((refSpace) => {
 					this.xrRefSpace = refSpace.getOffsetReferenceSpace(
 						new XRRigidTransform(
@@ -255,7 +255,7 @@ export class DemoApp {
 		if (this.demo) {
 			if (this.gui) this.gui.destroy();
 			if (this.demo.free) this.demo.free();
-			this.glsl.reset();
+			this.z.reset();
 			this.demo = this.gui = null;
 		}
 		if (!this.singleMode) location.hash = name;
@@ -306,10 +306,8 @@ export class DemoApp {
 		const canvas = document.createElement('canvas');
 		canvas.width = 400;
 		canvas.height = 300;
-		const glsl = zgl(canvas);
-		const withCamera = glsl.hook((glsl, p, t) =>
-			glsl({ ...p, Inc: this.glsl_include + (p.Inc || '') }, t)
-		);
+		const z = zgl(canvas);
+		const withCamera = z.hook((z, p, t) => z({ ...p, Inc: this.glsl_include + (p.Inc || '') }, t));
 		Object.keys(this.demos).forEach((name) => {
 			if (name == 'Spectrogram') return;
 			const dummyGui = new dat.GUI();
@@ -327,7 +325,7 @@ export class DemoApp {
              ${name}`;
 			panel.appendChild(el);
 			if (demo.free) demo.free();
-			glsl.reset();
+			z.reset();
 		});
 	}
 

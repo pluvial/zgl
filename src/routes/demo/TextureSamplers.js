@@ -6,8 +6,8 @@
 // Use different sampling modes on the same texture
 export default class TextureSamplers {
 	static Tags = ['2d'];
-	frame(glsl, { time }) {
-		const T = glsl(
+	frame(z, { time }) {
+		const T = z(
 			{
 				time,
 				FP: `
@@ -18,7 +18,7 @@ export default class TextureSamplers {
 			{ size: [32, 32], tag: 'T' }
 		);
 
-		glsl({
+		z({
 			Aspect: 'mean',
 			A: T.edge,
 			B: T.mirror,

@@ -9,15 +9,15 @@ import Shadowmap from './Shadowmap.js';
 export default class ParticleLife3d extends ParticleLife {
 	static Tags = ['3d', 'simulation', 'shadows'];
 
-	constructor(glsl, gui) {
-		super(glsl, gui);
+	constructor(z, gui) {
+		super(z, gui);
 		this.inertia = 0.4;
-		this.shadowmap = new Shadowmap(glsl, gui);
+		this.shadowmap = new Shadowmap(z, gui);
 	}
 
 	reset() {
 		for (let i = 0; i < 2; ++i) {
-			this.glsl(
+			this.z(
 				{
 					K: this.K,
 					seed: 123,
@@ -32,15 +32,15 @@ export default class ParticleLife3d extends ParticleLife {
 	}
 
 	drawScene(params) {
-		const glsl = this.shadowmap.glsl;
+		const z = this.shadowmap.z;
 		const shadowPass = !params.shadowmap;
 		const target = shadowPass
-			? glsl({ Clear: 0 }, { size: [1024, 1024], format: 'depth', tag: 'shadowmap' })
+			? z({ Clear: 0 }, { size: [1024, 1024], format: 'depth', tag: 'shadowmap' })
 			: null;
 		params = { ...params, shadowPass, DepthTest: 1 };
 
 		const { K, points, worldExtent } = this;
-		glsl(
+		z(
 			{
 				...params,
 				K,
@@ -62,7 +62,7 @@ export default class ParticleLife3d extends ParticleLife {
 
 		if (!shadowPass) {
 			for (const face of ['back', 'front'])
-				glsl({
+				z({
 					...params,
 					Grid: [6, 1],
 					Blend: 'd*(1-sa)+s',
@@ -97,11 +97,11 @@ export default class ParticleLife3d extends ParticleLife {
 		return target;
 	}
 
-	frame(glsl, params) {
+	frame(z, params) {
 		this.step();
 		const { points, worldExtent } = this;
 		const [sx, sy] = points[0].size;
-		const portalmap = glsl(
+		const portalmap = z(
 			{
 				worldExtent,
 				points: points[0],

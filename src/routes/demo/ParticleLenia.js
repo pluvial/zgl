@@ -9,9 +9,9 @@
 export default class ParticleLenia {
 	static Tags = ['2d', 'simulation'];
 
-	constructor(glsl, gui) {
-		this.glsl = glsl.hook((glsl, p, t) =>
-			glsl(
+	constructor(z, gui) {
+		this.z = z.hook((z, p, t) =>
+			z(
 				{
 					...p,
 					Inc:
@@ -64,14 +64,14 @@ export default class ParticleLenia {
 	}
 
 	reset() {
-		this.state = this.glsl(
+		this.state = this.z(
 			{ seed: Math.random() * 1234567, FP: `(hash(ivec3(I, int(seed))).xy-0.5)*12.0,0,0` },
 			{ size: [20, 10], story: 2, format: 'rgba32f', tag: 'state' }
 		);
 	}
 
 	step() {
-		this.glsl(
+		this.z(
 			{
 				...this.params,
 				FP: `
@@ -106,7 +106,7 @@ export default class ParticleLenia {
 
 	renderSpots(target = null, pointR = 0.4) {
 		const { state, viewR } = this;
-		this.glsl(
+		this.z(
 			{
 				state: state[0],
 				Grid: state[0].size,

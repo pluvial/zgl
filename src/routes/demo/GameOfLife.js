@@ -5,8 +5,8 @@
 
 export default class GameOfLife {
 	static Tags = ['2d', 'ca'];
-	frame(glsl) {
-		const state = glsl(
+	frame(z) {
+		const state = z(
 			{
 				FP: `
         FOut = Src(I);
@@ -26,10 +26,10 @@ export default class GameOfLife {
 			},
 			{ scale: 1 / 4, story: 2, tag: 'state' }
 		);
-		const fade = glsl(
+		const fade = z(
 			{ S: state[0], Blend: 'd*sa+s', FP: `S(I).xxx,0.9` },
 			{ size: state[0].size, tag: 'fade' }
 		);
-		glsl({ fade, FP: `fade(UV).x` });
+		z({ fade, FP: `fade(UV).x` });
 	}
 }

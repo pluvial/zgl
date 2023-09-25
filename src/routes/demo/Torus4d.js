@@ -4,8 +4,8 @@
  */
 export default class Torus4d {
 	static Tags = ['3d'];
-	frame(glsl, params) {
-		glsl({
+	frame(z, params) {
+		z({
 			...params,
 			Mesh: [100, 100],
 			Aspect: 'fit',

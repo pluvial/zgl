@@ -6,8 +6,8 @@
 export default class ReactionDiffusion {
 	static Tags = ['2d', 'simulation'];
 
-	constructor(glsl, gui) {
-		this.glsl = glsl;
+	constructor(z, gui) {
+		this.z = z;
 		this.step_n = 1;
 		gui.add(this, 'reset');
 		gui.add(this, 'step_n', 0, 20, 1);
@@ -15,14 +15,14 @@ export default class ReactionDiffusion {
 	}
 
 	reset() {
-		this.state = this.glsl(
+		this.state = this.z(
 			{ FP: `1.0, exp(-400.0*dot(XY,XY))*hash(I.xyx).x, 0, 0` },
 			{ size: [256, 256], format: 'rgba16f', filter: 'linear', story: 2, tag: 'state' }
 		);
 	}
 
 	step() {
-		this.glsl(
+		this.z(
 			{
 				FP: `
             vec2 v = Src(I).xy;
@@ -42,7 +42,7 @@ export default class ReactionDiffusion {
 		);
 	}
 
-	frame(glsl, params) {
+	frame(z, params) {
 		const { state } = this;
 		for (let i = 0; i < this.step_n; ++i) this.step();
 
@@ -54,7 +54,7 @@ export default class ReactionDiffusion {
             return vec2((1.0-v.x)*2.0,v.y*4.0+0.1)-1.0;
         }`;
 
-		const hist = glsl(
+		const hist = z(
 			{
 				state: state[0],
 				Grid: state[0].size,
@@ -70,7 +70,7 @@ export default class ReactionDiffusion {
 			{ size: [512, 512], format: 'rgba16f', filter: 'linear', tag: 'hist', wrap: 'edge' }
 		);
 
-		glsl({
+		z({
 			state: state[0],
 			hist,
 			Aspect: 'fit',

@@ -4,9 +4,9 @@
  */
 
 export default class DeferredShading {
-	frame(glsl, params) {
+	frame(z, params) {
 		// draw objects
-		const gbuf = glsl(
+		const gbuf = z(
 			{
 				...params,
 				Mesh: [64, 128],
@@ -54,7 +54,7 @@ export default class DeferredShading {
 		};
 
 		// accumulate surface lights
-		const light = glsl(
+		const light = z(
 			{
 				...lightArgs,
 				lightR: 0.3,
@@ -77,9 +77,9 @@ export default class DeferredShading {
 		);
 
 		// add light source points
-		glsl({ ...lightArgs, lightR: 0.005, Mesh: [16, 8], FP: `lightColor*0.3,1` }, light);
+		z({ ...lightArgs, lightR: 0.005, Mesh: [16, 8], FP: `lightColor*0.3,1` }, light);
 
 		// render to screen
-		glsl({ light, FP: `sqrt(light(UV))` });
+		z({ light, FP: `sqrt(light(UV))` });
 	}
 }

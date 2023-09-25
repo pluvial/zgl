@@ -6,10 +6,10 @@
 
 	onMount(async () => {
 		const { zgl } = await import('$lib/index.js');
-		const glsl = zgl(canvas);
-		glsl.loop(({ time }) => {
-			glsl.adjustCanvas();
-			glsl({
+		const z = zgl(canvas);
+		z.loop(({ time }) => {
+			z.adjustCanvas();
+			z({
 				time,
 				Aspect: 'cover',
 				FP: `
