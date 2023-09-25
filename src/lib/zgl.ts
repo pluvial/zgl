@@ -952,7 +952,7 @@ type Params = Partial<Options & Uniforms>;
 
 type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
 
-function drawQuads(self: Self, params: Params, target?: Target | TextureTarget | TextureTarget[]) {
+function drawQuads(self: Self, params: Params, target?: Target) {
 	const options = {} as Options,
 		uniforms = {} as Uniforms;
 	for (const p in params) {
@@ -963,17 +963,18 @@ function drawQuads(self: Self, params: Params, target?: Target | TextureTarget |
 	const noDraw = options.Clear === undefined && noShader;
 
 	// setup target
+	let textureTarget = target as unknown as TextureTarget | TextureTarget[];
 	if (target && 'tag' in target) {
-		target = prepareOwnTarget(self, target);
-		if (noDraw) return target;
+		textureTarget = prepareOwnTarget(self, target);
+		if (noDraw) return textureTarget;
 	}
-	if (Array.isArray(target)) {
-		uniforms.Src = uniforms.Src || target[0];
+	if (Array.isArray(textureTarget)) {
+		uniforms.Src = uniforms.Src || textureTarget[0];
 	}
 
 	// bind (and clear) target
 	const gl = self.gl;
-	const targetSize = bindTarget(gl, target);
+	const targetSize = bindTarget(gl, textureTarget);
 	let view = options.View || [0, 0, targetSize[0], targetSize[1]];
 	if (view.length == 2) {
 		view = [0, 0, view[0], view[1]];
@@ -994,7 +995,7 @@ function drawQuads(self: Self, params: Params, target?: Target | TextureTarget |
 
 	// setup program
 	if (noShader) {
-		return target;
+		return textureTarget;
 	}
 	const shaderID = Inc + VP + FP;
 	if (!(shaderID in self.shaders)) {
@@ -1037,7 +1038,7 @@ function drawQuads(self: Self, params: Params, target?: Target | TextureTarget |
 	const vertN = (uniforms.Mesh[0] * 2 + 3) * uniforms.Mesh[1] - 1;
 	const instN = gx * gy * gz;
 	ensureVertexArray(gl, Math.max(vertN, instN));
-	gl.bindVertexArray(gl._indexVA);
+	gl.bindVertexArray(gl._indexVA!);
 
 	// setup uniforms and textures
 	Object.entries(prog.setters).forEach(([name, f]) => f(uniforms[name as keyof typeof uniforms]));
@@ -1050,11 +1051,11 @@ function drawQuads(self: Self, params: Params, target?: Target | TextureTarget |
 	if (options.Face) gl.disable(gl.CULL_FACE);
 	if (options.AlphaCoverage) gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
 	gl.bindVertexArray(null);
-	return target;
+	return textureTarget;
 }
 
-function wrapZGL(hook: (z: ZGL, params: Params, target: Target) => void) {
-	const z = this as ZGL;
+function wrapZGL(this: ZGL, hook: (z: ZGL, params: Params, target: Target) => void) {
+	const z = this;
 	const f = (params: Params, target: Target) => hook(z, params, target);
 	f.hook = wrapZGL;
 	f.gl = z.gl;
