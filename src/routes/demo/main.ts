@@ -1,57 +1,35 @@
-import { zgl } from '$lib/zgl.ts';
+import { zgl, type WrappedZGL, type ZGL, type GL } from '$lib/zgl.js';
 
-const $ = (s) => document.querySelector(s);
-const setDisplay = (el, val) => {
-	if ($(el)) $(el).style.display = val;
+const $ = (s: string) => document.querySelector(s);
+const setDisplay = (el: string, val: string) => {
+	if ($(el)) $(el)!.style.display = val;
 };
 
+type Demo = {};
+
 export class DemoApp {
-	constructor(demos, defaultDemo = 'ParticleLife3d') {
-		const keys = Object.keys(demos);
-		this.singleMode = keys.length == 1;
-		if (this.singleMode) {
-			defaultDemo = keys[0];
-		}
-		this.demos = demos;
-
-		this.canvas = document.getElementById('c');
-		const gl = this.canvas.getContext('webgl2', {
-			alpha: false,
-			antialias: true,
-			xrCompatible: true
-		});
-		this.z = zgl(gl);
-		this.demo = null;
-		this.gui = null;
-
-		this.xrDemos = Object.values(this.demos).filter((f) => f.Tags && f.Tags.includes('3d'));
-		this.xrSession = null;
-		this.xrRefSpace = null;
-		this.xrPose = null;
-		this.lookUpStartTime = 0;
-		this.haveVR = this.haveAR = false;
-		if (navigator.xr) {
-			navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-				this.haveVR = supported;
-				this.updateVRButtons();
-			});
-			navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-				this.haveAR = supported;
-				this.updateVRButtons();
-			});
-		}
-
-		this.viewParams = {
-			canvasSize: new Float32Array(2),
-			pointer: new Float32Array(3),
-			cameraYPD: new Float32Array(3),
-			xrRay: new Float32Array(16 * 2),
-			xrRayInv: new Float32Array(16 * 2),
-			xrButton: new Float32Array(4 * 2)
-		};
-		this.resetCamera();
-
-		this.glsl_include = `
+	singleMode: boolean;
+	canvas: HTMLCanvasElement;
+	z: ZGL;
+	demo: Demo | null = null;
+	gui: any = null;
+	xrDemos: any;
+	xrSession: any = null;
+	xrRefSpace: any = null;
+	xrPose: any = null;
+	lookUpStartTime = 0;
+	haveAR = false;
+	haveVR = false;
+	viewParams = {
+		canvasSize: new Float32Array(2),
+		pointer: new Float32Array(3),
+		cameraYPD: new Float32Array(3),
+		xrRay: new Float32Array(16 * 2),
+		xrRayInv: new Float32Array(16 * 2),
+		xrButton: new Float32Array(4 * 2)
+	};
+	withCamera: WrappedZGL;
+	glsl_include = `
             uniform bool xrMode;
             uniform mat4 xrProjectionMatrix, xrViewMatrix;
             uniform mat4 xrRay[2], xrRayInv[2];
@@ -86,6 +64,43 @@ export class DemoApp {
                 return wld2proj(vec4(p,1.0));
             }
         `;
+
+	constructor(public demos: Record<string, Demo>, defaultDemo = 'ParticleLife3d') {
+		const keys = Object.keys(demos);
+		this.singleMode = keys.length == 1;
+		if (this.singleMode) {
+			defaultDemo = keys[0];
+		}
+
+		this.canvas = document.getElementById('c') as HTMLCanvasElement;
+		const gl = this.canvas.getContext('webgl2', {
+			alpha: false,
+			antialias: true,
+			xrCompatible: true
+		}) as WebGL2RenderingContext;
+		this.z = zgl(gl);
+		this.demo = null;
+		this.gui = null;
+
+		this.xrDemos = Object.values(this.demos).filter((f) => f.Tags && f.Tags.includes('3d'));
+		this.xrSession = null;
+		this.xrRefSpace = null;
+		this.xrPose = null;
+		this.lookUpStartTime = 0;
+		this.haveVR = this.haveAR = false;
+		if (navigator.xr) {
+			navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+				this.haveVR = supported;
+				this.updateVRButtons();
+			});
+			navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+				this.haveAR = supported;
+				this.updateVRButtons();
+			});
+		}
+
+		this.resetCamera();
+
 		this.withCamera = this.z.hook((z, params, target) => {
 			params = { ...params, Inc: this.glsl_include + (params.Inc || '') };
 			if (target || !params.xrMode) {
@@ -94,7 +109,7 @@ export class DemoApp {
 			delete params.Aspect;
 			let glLayer = this.xrSession.renderState.baseLayer;
 			target = {
-				bind: (gl) => {
+				bind: (gl: GL) => {
 					gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
 					return [glLayer.framebufferWidth, glLayer.framebufferHeight];
 				}
@@ -110,7 +125,7 @@ export class DemoApp {
 			}
 		});
 
-		const setPointer = (e, buttons) => {
+		const setPointer = (e: PointerEvent, buttons: number) => {
 			const [w, h] = this.viewParams.canvasSize;
 			const [x, y] = [e.offsetX - w / 2, h / 2 - e.offsetY];
 			this.viewParams.pointer.set([x, y, buttons]);
@@ -151,20 +166,20 @@ export class DemoApp {
 		this.viewParams.cameraYPD.set([(Math.PI * 3) / 4, Math.PI / 4, 1.8]);
 	}
 
-	frame(t) {
+	frame(t: number) {
 		requestAnimationFrame(this.frame.bind(this));
 		if (this.xrSession) return; // skip canvas frames when XR is running
 		this.z.adjustCanvas(1); // fix devicePixelRatio to 1
 		this.viewParams.canvasSize.set([this.canvas.clientWidth, this.canvas.clientHeight]);
 
-		this.demo.frame(this.withCamera, {
+		this.demo!.frame(this.withCamera, {
 			time: t / 1000.0,
 			xrMode: false,
 			...this.viewParams
 		});
 	}
 
-	xrFrame(t, xrFrame) {
+	xrFrame(t: number, xrFrame) {
 		this.xrSession.requestAnimationFrame(this.xrFrame.bind(this));
 		this.xrPose = xrFrame.getViewerPose(this.xrRefSpace);
 		if (!this.xrPose) return;
@@ -186,7 +201,7 @@ export class DemoApp {
 			this.viewParams.xrRayInv.set(pose.transform.inverse.matrix, i * 16);
 		}
 
-		this.demo.frame(this.withCamera, params);
+		this.demo!.frame(this.withCamera, params);
 		this.withCamera({
 			...params,
 			Mesh: [20, 20],
@@ -208,7 +223,7 @@ export class DemoApp {
 			const dt = (t - this.lookUpStartTime) / 1000;
 			if (dt > 1) {
 				this.lookUpStartTime = t;
-				let i = this.xrDemos.indexOf(this.demo.constructor);
+				let i = this.xrDemos.indexOf(this.demo!.constructor);
 				i = (i + 1) % this.xrDemos.length;
 				this.runDemo(this.xrDemos[i].name);
 			} else {
@@ -251,7 +266,7 @@ export class DemoApp {
 		}
 	}
 
-	runDemo(name) {
+	runDemo(name: string) {
 		if (this.demo) {
 			if (this.gui) this.gui.destroy();
 			if (this.demo.free) this.demo.free();
@@ -301,7 +316,7 @@ export class DemoApp {
 
 	// helper function to render demo preview images
 	genPreviews() {
-		const panel = document.getElementById('cards');
+		const panel = document.getElementById('cards') as HTMLDetailsElement;
 		panel.innerHTML = '';
 		const canvas = document.createElement('canvas');
 		canvas.width = 400;

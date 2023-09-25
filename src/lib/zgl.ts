@@ -36,7 +36,7 @@ import { updateObject } from './util.js';
 
 const GL = WebGL2RenderingContext;
 
-type GL = WebGL2RenderingContext;
+export type GL = WebGL2RenderingContext;
 
 type S =
 	| 'BOOL'
@@ -942,10 +942,10 @@ type Options = {
 	Clear: number | [number, number, number, number];
 	Blend: string;
 	View: [number, number] | [number, number, number, number];
-	Grid: [number, number];
+	Grid: [number] | [number, number] | [number, number, number];
 	Mesh: [number, number];
 	Aspect: Aspect;
-	DepthTest: boolean | 'keep';
+	DepthTest: 0 | 1 | boolean | 'keep';
 	AlphaCoverage: boolean;
 	Face: 'front' | 'back';
 };
@@ -984,7 +984,7 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 	}
 
 	// bind (and clear) target
-	const gl = self.gl;
+	const { gl } = self;
 	const targetSize = bindTarget(gl, textureTarget);
 	let view = options.View || [0, 0, targetSize[0], targetSize[1]];
 	if (view.length == 2) {
@@ -1065,9 +1065,15 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 	return textureTarget;
 }
 
-type Hook = (z: ZGL, params: Params, target: Target) => void;
+type Hook = (z: ZGL, params: Params, target?: Target) => void;
 
-type ZGL = {
+export type WrappedZGL = {
+	(params: Params, target?: Target): void;
+	hook: (this: ZGL, hook: Hook) => any;
+	gl: GL;
+};
+
+export type ZGL = {
 	(params: Params, target?: Target): TextureTarget | TextureTarget[];
 	hook: (hook: Hook) => WrappedZGL;
 	gl: GL;
@@ -1078,17 +1084,15 @@ type ZGL = {
 	loop(callback: (arg: { z: ZGL; time: number }) => any): void;
 };
 
-type WrappedZGL = {
-	(params: Params, target: Target): void;
-	hook: (this: ZGL, hook: Hook) => any;
-	gl: GL;
-};
-
 function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
 	const z = this;
-	const f: WrappedZGL = (params: Params, target: Target) => hook(z, params, target);
-	f.hook = wrapZGL;
-	f.gl = z.gl;
+	const f: WrappedZGL = Object.assign(
+		(params: Params, target?: Target) => hook(z, params, target),
+		{
+			hook: wrapZGL,
+			gl: z.gl
+		}
+	);
 	return f;
 }
 
