@@ -24,7 +24,7 @@ sin(length(XY)*vec3(30,30.5,31)
 
 <style>
 	canvas {
-		width: 100vw;
-		height: 100vh;
+		width: 100%;
+		height: 100%;
 	}
 </style>

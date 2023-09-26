@@ -21,6 +21,4 @@ sin(length(XY)*vec3(30,30.5,31)
 			});
 		});
 	}}
-	--width="100vw"
-	--height="100vh"
 ></Canvas>

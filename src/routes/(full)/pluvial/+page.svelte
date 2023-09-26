@@ -24,7 +24,7 @@ sin(length(XY*time/3.)*vec3(1,2,3)*7.
 
 <style>
 	canvas {
-		width: 100vw;
-		height: 100vh;
+		width: 100%;
+		height: 100%;
 	}
 </style>
