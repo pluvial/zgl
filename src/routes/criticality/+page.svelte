@@ -118,6 +118,7 @@ VPos.xy = nodePos(ID.xy) + r*XY;
 				FP: `color*exp(-dot(XY,XY)*3.0)`
 			});
 		});
+		return z.stop;
 	});
 </script>
 

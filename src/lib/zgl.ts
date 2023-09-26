@@ -1082,6 +1082,7 @@ export type ZGL = {
 	reset(): void;
 	adjustCanvas(dpr?: number): void;
 	loop(callback: (arg: { z: ZGL; time: number }) => any): void;
+	stop(): void;
 };
 
 function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
@@ -1107,6 +1108,7 @@ export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
 	gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
 	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 	ensureVertexArray(gl, 1024);
+	let raf: ReturnType<typeof requestAnimationFrame>;
 	const z: ZGL = Object.assign((params: Params, target?: Target) => drawQuads(z, params, target), {
 		hook: wrapZGL,
 		gl,
@@ -1131,10 +1133,13 @@ export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
 			}
 		},
 		loop(callback: (arg: { z: ZGL; time: number }) => any) {
-			requestAnimationFrame(function frameFunc(time) {
+			raf = requestAnimationFrame(function frameFunc(time) {
 				const res = callback({ z, time: time / 1000.0 });
-				if (res != 'stop') requestAnimationFrame(frameFunc);
+				if (res != 'stop') raf = requestAnimationFrame(frameFunc);
 			});
+		},
+		stop() {
+			cancelAnimationFrame(raf);
 		}
 	});
 
