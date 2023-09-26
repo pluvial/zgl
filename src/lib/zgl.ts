@@ -444,8 +444,8 @@ void main() {
 	);
 }
 
-type Filter = 'linear' | 'nearest' | 'miplinear';
-type Wrap = 'edge' | 'repeat' | 'mirror';
+export type Filter = 'linear' | 'nearest' | 'miplinear';
+export type Wrap = 'edge' | 'repeat' | 'mirror';
 
 type TextureSamplerCore = {
 	gl: GL & { _samplers?: Record<string, WebGLSampler> };
@@ -771,7 +771,8 @@ export class TextureTarget extends TextureSampler {
 	}
 }
 
-type Aspect = 'fit' | 'cover' | 'mean' | 'x' | 'y';
+export type Aspect = 'fit' | 'cover' | 'mean' | 'x' | 'y';
+
 function calcAspect(aspect: Aspect | null | undefined, w: number, h: number): [number, number] {
 	if (!aspect) return [1, 1];
 	let c;
@@ -868,8 +869,8 @@ function createTarget(
 		.map((_) => new TextureTarget(gl, params));
 }
 
-type Buffers = Record<string, TextureTarget | TextureTarget[]>;
-type Shaders = Record<string, Program>;
+export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
+export type Shaders = Record<string, Program>;
 
 type Self = {
 	gl: GL & { _indexVA?: VA };
@@ -877,7 +878,7 @@ type Self = {
 	shaders: Shaders;
 };
 
-type Spec = {
+export type Spec = {
 	size: [number, number];
 	scale?: number;
 	format?: string;
@@ -935,7 +936,7 @@ const OptNames = new Set([
 	'Face'
 ]);
 
-type Options = {
+export type Options = {
 	Inc: string;
 	VP: string;
 	FP: string;
@@ -950,7 +951,7 @@ type Options = {
 	Face: 'front' | 'back';
 };
 
-type Uniforms = {
+export type Uniforms = {
 	Src: WebGLTexture;
 	View: [number, number, number, number];
 	Aspect: [number, number];
@@ -958,9 +959,9 @@ type Uniforms = {
 	Mesh: [number, number];
 };
 
-type Params = Partial<Options & Record<string, any>>;
+export type Params = Partial<Options & Record<string, any>>;
 
-type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
+export type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
 
 function drawQuads(self: Self, params: Params, target?: Target): TextureTarget | TextureTarget[] {
 	const options = {} as Options,
@@ -1065,24 +1066,12 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 	return textureTarget;
 }
 
-type Hook = (z: ZGL, params: Params, target?: Target) => void;
+export type Hook = (z: ZGL, params: Params, target?: Target) => void;
 
 export type WrappedZGL = {
 	(params: Params, target?: Target): void;
 	hook: (this: ZGL, hook: Hook) => any;
 	gl: GL;
-};
-
-export type ZGL = {
-	(params: Params, target?: Target): TextureTarget | TextureTarget[];
-	hook: (hook: Hook) => WrappedZGL;
-	gl: GL;
-	buffers: Buffers;
-	shaders: Shaders;
-	reset(): void;
-	adjustCanvas(dpr?: number): void;
-	loop(callback: (arg: { z: ZGL; time: number }) => any): void;
-	stop(): void;
 };
 
 function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
@@ -1145,3 +1134,15 @@ export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
 
 	return z;
 }
+
+export type ZGL = {
+	(params: Params, target?: Target): TextureTarget | TextureTarget[];
+	hook: (hook: Hook) => WrappedZGL;
+	gl: GL;
+	buffers: Buffers;
+	shaders: Shaders;
+	reset(): void;
+	adjustCanvas(dpr?: number): void;
+	loop(callback: (arg: { z: ZGL; time: number }) => any): void;
+	stop(): void;
+};
