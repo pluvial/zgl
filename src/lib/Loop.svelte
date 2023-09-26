@@ -15,4 +15,5 @@
 		z = e.detail;
 		z.loop(f);
 	}}
-></Canvas>
+	{...$$restProps}><slot /></Canvas
+>
