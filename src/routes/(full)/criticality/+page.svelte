@@ -123,12 +123,6 @@ VPos.xy = nodePos(ID.xy) + r*XY;
 <canvas bind:this={canvas} on:click={() => (phaseDir *= -1)} />
 
 <style>
-	:global(body, html) {
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-	}
-
 	canvas {
 		width: 100vw;
 		height: 100vh;

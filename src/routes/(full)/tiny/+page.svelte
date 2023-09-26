@@ -12,8 +12,8 @@
 				time,
 				Aspect: 'cover',
 				FP: `
-sin(length(XY*time/3.)*vec3(1,2,3)*7.
--time/3.*vec3(3,1,2)+atan(XY.x,XY.y)*3.),1`
+sin(length(XY)*vec3(30,30.5,31)
+-time+atan(XY.x,XY.y)*3.),1`
 			});
 		});
 		return z.stop;
@@ -23,12 +23,6 @@ sin(length(XY*time/3.)*vec3(1,2,3)*7.
 <canvas bind:this={canvas} />
 
 <style>
-	:global(body, html) {
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-	}
-
 	canvas {
 		width: 100vw;
 		height: 100vh;

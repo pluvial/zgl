@@ -16,11 +16,3 @@ sin(length(XY)*vec3(30,30.5,31)
 	--width="100vw"
 	--height="100vh"
 ></Loop>
-
-<style>
-	:global(body, html) {
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-	}
-</style>

@@ -23,12 +23,6 @@ sin(length(XY*time/3.)*vec3(1,2,3)*7.
 <canvas bind:this={canvas} />
 
 <style>
-	:global(body, html) {
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-	}
-
 	canvas {
 		width: 100vw;
 		height: 100vh;
