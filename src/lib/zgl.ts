@@ -383,9 +383,7 @@ function expandCode(code: string, mainFunc: string, outVar: string) {
 		code = `${outVar} = vec4(${stripped});`;
 	}
 	if (!stripped.match(new RegExp(`\\b${mainFunc}\s*\\(`))) {
-		code = `void ${mainFunc}() {
-          ${code};
-        }`;
+		code = `void ${mainFunc}() { ${code}; }`;
 	}
 	return code;
 }
@@ -418,31 +416,31 @@ function linkShader(gl: GL, uniforms: Record<string, any>, Inc: string, VP: stri
 	return compileProgram(
 		gl,
 		`
-    #define VERT
-    ${prefix}\n${VP}
-    void main() {
-      int rowVertN = Mesh.x*2+3;
-      int rowI = VertexID/rowVertN;
-      int rowVertI = min(VertexID%rowVertN, rowVertN-2);
-      int odd = rowI%2;
-      if (odd==0) rowVertI = rowVertN-rowVertI-2;
-      VID = ivec2(rowVertI>>1, rowI + (rowVertI+odd+1)%2);
-      int ii = InstanceID;
-      ID.x = ii % Grid.x; ii/=Grid.x;
-      ID.y = ii % Grid.y; ii/=Grid.y;
-      ID.z = ii;
-      UV = vec2(VID) / vec2(Mesh);
-      VPos = vec4(XY,0,1);
-      vertex();
-      VPos.xy *= Aspect;
-    }`,
+#define VERT
+${prefix}\n${VP}
+void main() {
+  int rowVertN = Mesh.x*2+3;
+  int rowI = VertexID/rowVertN;
+  int rowVertI = min(VertexID%rowVertN, rowVertN-2);
+  int odd = rowI%2;
+  if (odd==0) rowVertI = rowVertN-rowVertI-2;
+  VID = ivec2(rowVertI>>1, rowI + (rowVertI+odd+1)%2);
+  int ii = InstanceID;
+  ID.x = ii % Grid.x; ii/=Grid.x;
+  ID.y = ii % Grid.y; ii/=Grid.y;
+  ID.z = ii;
+  UV = vec2(VID) / vec2(Mesh);
+  VPos = vec4(XY,0,1);
+  vertex();
+  VPos.xy *= Aspect;
+}`,
 		`
-    #define FRAG
-    ${prefix}\n${expandFP(FP)}
-    void main() {
-      I = ivec2(gl_FragCoord.xy);
-      fragment();
-    }`
+#define FRAG
+${prefix}\n${expandFP(FP)}
+void main() {
+  I = ivec2(gl_FragCoord.xy);
+  fragment();
+}`
 	);
 }
 

@@ -12,8 +12,8 @@
 				time,
 				Aspect: 'cover',
 				FP: `
-				    sin(length(XY*time/3.)*vec3(1,2,3)*7.
-				    -time/3.*vec3(3,1,2))+atan(XY.x,XY.y)*3.,1`
+sin(length(XY*time/3.)*vec3(1,2,3)*7.
+-time/3.*vec3(3,1,2))+atan(XY.x,XY.y)*3.,1`
 			});
 		});
 	});
