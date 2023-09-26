@@ -230,7 +230,7 @@ function compileProgram(gl: GL, vs: string, fs: string) {
 		}
 	}
 	gl.useProgram(null);
-	console.log('created', program);
+	console.debug('created', program);
 	return program;
 }
 
@@ -705,7 +705,7 @@ export class TextureTarget extends TextureSampler {
 			const byteN = n * this.formatInfo.CpuArray.BYTES_PER_ELEMENT;
 			gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
 			gpuBuf.length = n;
-			console.log(`created/resized async gpu buffer "${this._tag}":`, gpuBuf);
+			console.debug(`created/resized async gpu buffer "${this._tag}":`, gpuBuf);
 		}
 		return gpuBuf;
 	}
@@ -747,7 +747,7 @@ export class TextureTarget extends TextureSampler {
 			return;
 		}
 		if (res === gl.WAIT_FAILED) {
-			console.log(`async read of ${this._tag} failed`);
+			console.debug(`async read of ${this._tag} failed`);
 		} else {
 			gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
 			const target = optTarget || this._getCPUBuf(gpuBuf.length);
@@ -838,7 +838,7 @@ function ensureVertexArray(gl: GL & { _indexVA?: VA }, neededSize: number) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	gl.bindVertexArray(null);
 
-	console.log('created:', va);
+	console.debug('created:', va);
 }
 
 function getTargetSize(
@@ -897,14 +897,14 @@ function prepareOwnTarget(self: Self, spec: Spec): TextureTarget | TextureTarget
 	spec.size = getTargetSize(self.gl, spec);
 	if (!buffers[spec.tag]) {
 		const target = (buffers[spec.tag] = createTarget(self.gl, spec));
-		console.log('created', target);
+		console.debug('created', target);
 	}
 	const target = buffers[spec.tag];
 	const tex = Array.isArray(target) ? target[target.length - 1] : target;
 	const needResize = tex.size[0] != spec.size[0] || tex.size[1] != spec.size[1];
 	if (needResize || spec.data) {
 		if (needResize) {
-			console.log(`resizing "${spec.tag}" (${tex.size})->(${spec.size})`);
+			console.debug(`resizing "${spec.tag}" (${tex.size})->(${spec.size})`);
 		}
 		tex.update(spec.size, spec.data!);
 	}

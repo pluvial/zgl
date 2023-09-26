@@ -18,7 +18,7 @@ export default class DotCamera {
 				this.video.play();
 			})
 			.catch((error) => {
-				console.log('Error accessing camera:', error);
+				console.warn('Error accessing camera:', error);
 			});
 	}
 

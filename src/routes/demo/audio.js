@@ -65,7 +65,7 @@ export default class AudioStream extends AudioWorkletProcessor {
 		const submit = (buf) => this.workletNode.port.postMessage(buf, [buf.buffer]);
 		this.workletNode.port.onmessage = (msg) => callback(msg.data, submit);
 		this.workletNode.connect(this.audioContext.destination);
-		console.log('audio stream started');
+		console.debug('audio stream started');
 	}
 	stop() {
 		this.audioContext.close();

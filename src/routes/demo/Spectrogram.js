@@ -18,7 +18,7 @@ export default class Spectrogram {
 				this.analyser.smoothingTimeConstant = 0.5;
 				this.input.connect(this.analyser);
 				this.frequencyArray = new Uint8Array(this.analyser.frequencyBinCount);
-				console.log('mic activated, frequencyBinCount:', this.analyser.frequencyBinCount);
+				console.debug('mic activated, frequencyBinCount:', this.analyser.frequencyBinCount);
 			})
 			.catch((e) => console.error('Error getting microphone:', e));
 	}
