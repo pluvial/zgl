@@ -5,12 +5,15 @@
 
 	export let f: (arg: { z: ZGL; time: number }) => void;
 
-	let z: ZGL;
+	export let canvas: HTMLCanvasElement | undefined = undefined;
+	export let z: ZGL | undefined = undefined;
 
-	onMount(() => z.stop);
+	onMount(() => z!.stop);
 </script>
 
 <Canvas
+	bind:canvas
+	bind:z
 	on:z={(e) => {
 		z = e.detail;
 		z.loop(f);

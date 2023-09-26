@@ -2,18 +2,18 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { zgl, type ZGL } from './zgl.js';
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{ z: ZGL }>();
 
-	let canvas: HTMLCanvasElement;
-	let z: ZGL;
+	export let canvas: HTMLCanvasElement | undefined = undefined;
+	export let z: ZGL | undefined = undefined;
 
 	onMount(() => {
-		z = zgl(canvas);
+		z = zgl(canvas!);
 		dispatch('z', z);
 	});
 </script>
 
-<canvas bind:this={canvas} {...$$restProps}><slot {canvas} {z} /></canvas>
+<canvas bind:this={canvas} {...$$restProps}><slot /></canvas>
 
 <style>
 	canvas {
