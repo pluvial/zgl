@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import zgl, { type GL, type WrappedZGL, type ZGL } from '$lib/index.js';
 	import demos from './demo/index.js';
 
@@ -41,6 +41,8 @@ vec4 wld2proj(vec3 p) {
 }
 `;
 
+	let GUI: (typeof import('lil-gui'))['GUI'];
+
 	let canvas: HTMLCanvasElement;
 	let panel: HTMLDetailsElement;
 	let cards: HTMLDivElement;
@@ -48,6 +50,7 @@ vec4 wld2proj(vec3 p) {
 	let arButton: HTMLButtonElement;
 	let settingButton: HTMLButtonElement;
 	let sourceLink: HTMLAnchorElement;
+	let guiContainer: HTMLDivElement;
 
 	const keys = Object.keys(demos);
 	const singleMode = keys.length == 1;
@@ -61,7 +64,7 @@ vec4 wld2proj(vec3 p) {
 
 	let z: ZGL;
 	let demo: Demo | null = null;
-	let gui: any = null;
+	let gui: InstanceType<(typeof import('lil-gui'))['GUI']> | null = null;
 
 	let xrDemos = Object.values(demos).filter((f) => 'Tags' in f && f.Tags.includes('3d'));
 	let xrSession: XRSession | null = null;
@@ -80,7 +83,9 @@ vec4 wld2proj(vec3 p) {
 	};
 	let withCamera: WrappedZGL;
 
-	onMount(() => {
+	let raf: ReturnType<typeof requestAnimationFrame>;
+	onMount(async () => {
+		({ GUI } = await import('lil-gui'));
 		const gl = canvas.getContext('webgl2', {
 			alpha: false,
 			antialias: true,
@@ -158,8 +163,10 @@ vec4 wld2proj(vec3 p) {
 		runDemo(name);
 		populatePreviews();
 
-		requestAnimationFrame(frame);
+		raf = requestAnimationFrame(frame);
 	});
+
+	onDestroy(() => raf && cancelAnimationFrame(raf));
 
 	function setDisplay(el: HTMLElement, val: string) {
 		el.style.display = val;
@@ -170,7 +177,7 @@ vec4 wld2proj(vec3 p) {
 	}
 
 	function frame(t: number) {
-		requestAnimationFrame(frame);
+		raf = requestAnimationFrame(frame);
 		if (xrSession) return; // skip canvas frames when XR is running
 		z.adjustCanvas(1); // fix devicePixelRatio to 1
 		viewParams.canvasSize.set([canvas.clientWidth, canvas.clientHeight]);
@@ -284,13 +291,11 @@ vec4 wld2proj(vec3 p) {
 			demo = gui = null;
 		}
 		if (!singleMode) location.hash = name;
-		if (self.dat) {
-			gui = new dat.GUI();
-			gui.domElement.id = 'gui';
-			gui.hide();
-		}
+		gui = new GUI({ container: guiContainer });
+		gui.domElement.id = 'gui';
+		gui.hide();
 		demo = new demos[name as keyof Demos](withCamera, gui);
-		if (gui && gui.__controllers.length == 0) {
+		if (gui && gui.controllers.length == 0) {
 			gui.destroy();
 			gui = null;
 		}
@@ -334,7 +339,7 @@ vec4 wld2proj(vec3 p) {
 		const withCamera = z.hook((z, p, t) => z({ ...p, Inc: glsl_include + (p.Inc || '') }, t));
 		Object.keys(demos).forEach((name) => {
 			if (name == 'Spectrogram') return;
-			const dummyGui = new dat.GUI();
+			const dummyGui = new GUI();
 			const demo = new demos[name as keyof Demos](withCamera, dummyGui);
 			dummyGui.destroy();
 			resetCamera();
@@ -362,13 +367,7 @@ vec4 wld2proj(vec3 p) {
 	function fullscreen() {
 		canvas.requestFullscreen();
 	}
-
-	onMount(() => {});
 </script>
-
-<svelte:head>
-	<script src="/dat.gui.min.js"></script>
-</svelte:head>
 
 <details bind:this={panel} open>
 	<summary><a href="https://github.com/pluvial/zgl">ZGL</a> demos</summary>
@@ -384,7 +383,8 @@ vec4 wld2proj(vec3 p) {
 		bind:this={settingButton}
 		on:click={toggleGui}
 		class="settingButton"
-		style:font-size="100%"
+		style:display="block"
+		style:font-size="180%"
 		title="settings">⛯</button
 	>
 	<a bind:this={sourceLink} class="sourceLink" href="" target="_blank"
@@ -392,6 +392,7 @@ vec4 wld2proj(vec3 p) {
 	>
 	<button title="fullscreen" on:click={fullscreen}>⛶</button>
 </div>
+<div bind:this={guiContainer} class="gui"></div>
 
 <style>
 	:global(body) {
@@ -443,10 +444,19 @@ vec4 wld2proj(vec3 p) {
 		touch-action: none;
 	}
 
+	.gui {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 0;
+		z-index: 0;
+	}
+
 	:global(#gui) {
 		position: fixed;
 		bottom: 0px;
-		right: 50px;
+		right: 70px;
 	}
 
 	.buttons {
