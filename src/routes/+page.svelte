@@ -161,7 +161,6 @@ vec4 wld2proj(vec3 p) {
 			name = defaultDemo;
 		}
 		runDemo(name);
-		populatePreviews();
 
 		raf = requestAnimationFrame(frame);
 	});
@@ -318,17 +317,6 @@ VPos = wld2proj(vec4(p,1));`,
 		}
 	}
 
-	function populatePreviews() {
-		if (!cards) return;
-		Object.keys(demos).forEach((name) => {
-			const el = document.createElement('div');
-			el.classList.add('card');
-			el.innerHTML = `<img src="/preview/${name}.jpg">${name}`;
-			el.addEventListener('click', () => runDemo(name));
-			cards.appendChild(el);
-		});
-	}
-
 	// helper function to render demo preview images
 	function genPreviews() {
 		cards.innerHTML = '';
@@ -371,7 +359,12 @@ VPos = wld2proj(vec4(p,1));`,
 
 <details bind:this={panel} open>
 	<summary><a href="https://github.com/pluvial/zgl">ZGL</a> demos</summary>
-	<div class="cards" bind:this={cards} />
+	<div class="cards" bind:this={cards}>
+		{#each Object.keys(demos) as name}
+			<div class="card" on:click={() => runDemo(name)}><img src="/preview/{name}.jpg" />{name}</div>
+		{/each}
+	</div>
+	});
 </details>
 <div class="demo">
 	<canvas bind:this={canvas} width="640" height="360" />
