@@ -129,33 +129,6 @@ vec4 wld2proj(vec3 p) {
 			}
 		});
 
-		const setPointer = (e: PointerEvent, buttons: number) => {
-			const [w, h] = viewParams.canvasSize;
-			const [x, y] = [e.offsetX - w / 2, h / 2 - e.offsetY];
-			viewParams.pointer.set([x, y, buttons]);
-			return [x, y];
-		};
-		canvas.addEventListener('pointerdown', (e) => {
-			if (!e.isPrimary) return;
-			setPointer(e, e.buttons);
-			if (window.innerWidth < 500) {
-				// close menu on small screens
-				panel.removeAttribute('open');
-			}
-		});
-		canvas.addEventListener('pointerout', (e) => setPointer(e, 0));
-		canvas.addEventListener('pointerup', (e) => setPointer(e, 0));
-		canvas.addEventListener('pointermove', (e) => {
-			const [px, py, _] = viewParams.pointer;
-			const [x, y] = setPointer(e, e.buttons);
-			if (!e.isPrimary || e.buttons != 1) return;
-			let [yaw, pitch, dist] = viewParams.cameraYPD;
-			yaw -= (x - px) * 0.01;
-			pitch += (y - py) * 0.01;
-			pitch = Math.min(Math.max(pitch, 0), Math.PI);
-			viewParams.cameraYPD.set([yaw, pitch, dist]);
-		});
-
 		let name = location.hash.slice(1);
 		if (!(name in demos)) {
 			name = defaultDemo;
@@ -355,6 +328,13 @@ VPos = wld2proj(vec4(p,1));`,
 	function fullscreen() {
 		canvas.requestFullscreen();
 	}
+
+	function setPointer(e: PointerEvent, buttons: number) {
+		const [w, h] = viewParams.canvasSize;
+		const [x, y] = [e.offsetX - w / 2, h / 2 - e.offsetY];
+		viewParams.pointer.set([x, y, buttons]);
+		return [x, y];
+	}
 </script>
 
 <details bind:this={panel} open>
@@ -367,7 +347,32 @@ VPos = wld2proj(vec4(p,1));`,
 	});
 </details>
 <div class="demo">
-	<canvas bind:this={canvas} width="640" height="360" />
+	<canvas
+		width="640"
+		height="360"
+		bind:this={canvas}
+		on:pointerdown={(e) => {
+			if (!e.isPrimary) return;
+			setPointer(e, e.buttons);
+			if (window.innerWidth < 500) {
+				// close menu on small screens
+				panel.removeAttribute('open');
+			}
+		}}
+		on:pointerout={(e) => setPointer(e, 0)}
+		on:pointerup={(e) => setPointer(e, 0)}
+		on:pointermove={(e) => {
+			const [px, py, _] = viewParams.pointer;
+			const [x, y] = setPointer(e, e.buttons);
+			if (!e.isPrimary || e.buttons != 1) return;
+			let [yaw, pitch, dist] = viewParams.cameraYPD;
+			yaw -= (x - px) * 0.01;
+			pitch += (y - py) * 0.01;
+			pitch = Math.min(Math.max(pitch, 0), Math.PI);
+			viewParams.cameraYPD.set([yaw, pitch, dist]);
+		}}
+	>
+	</canvas>
 </div>
 <div class="buttons">
 	<button bind:this={vrButton} on:click={toggleVR} class="vrButton" title="VR">VR</button>

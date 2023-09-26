@@ -4,6 +4,8 @@
 
 	let canvas: HTMLCanvasElement;
 
+	let phaseDir = -0.5;
+
 	onMount(() => {
 		const z = zgl(canvas);
 		const [W, H] = [40, 20];
@@ -27,11 +29,7 @@
 		);
 		let lastStep = -1000,
 			lastTime = 0;
-		let phase = 0.1,
-			phaseDir = -0.5;
-		canvas.addEventListener('click', () => {
-			phaseDir *= -1;
-		});
+		let phase = 0.1;
 
 		z.loop(({ time }) => {
 			z.adjustCanvas();
@@ -122,8 +120,7 @@ VPos.xy = nodePos(ID.xy) + r*XY;
 	});
 </script>
 
-<canvas bind:this={canvas} />
--
+<canvas bind:this={canvas} on:click={() => (phaseDir *= -1)} />
 
 <style>
 	:global(body, html) {
