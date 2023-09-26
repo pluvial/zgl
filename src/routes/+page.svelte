@@ -1,46 +1,395 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { DemoApp } from './demo/main.js';
+	import zgl, { type GL, type WrappedZGL, type ZGL } from '$lib/index.js';
 	import demos from './demo/index.js';
 
-	let app: DemoApp;
+	export let defaultDemo = 'ParticleLife3d';
+
+	const glsl_include = `
+uniform bool xrMode;
+uniform mat4 xrProjectionMatrix, xrViewMatrix;
+uniform mat4 xrRay[2], xrRayInv[2];
+uniform vec4 xrButton[2];
+uniform vec3 xrPosition;
+
+uniform vec3 cameraYPD;
+vec3 cameraPos() {
+    if (xrMode) return xrPosition;
+    vec3 p = vec3(0, 0, cameraYPD.z);
+    p.yz *= rot2(-cameraYPD.y);
+    p.xy *= rot2(-cameraYPD.x);
+    return p;
+}
+vec4 wld2view(vec4 p) {
+    if (xrMode) return xrViewMatrix * p;
+    p.xy *= rot2(cameraYPD.x);
+    p.yz *= rot2(cameraYPD.y);
+    p.z -= cameraYPD.z;
+    return p;
+}
+vec4 view2proj(vec4 p) {
+    if (xrMode) return xrProjectionMatrix*p;
+    const float near = 0.1, far = 10.0, fov = 1.0;
+    return vec4(p.xy/tan(fov/2.0),
+        (p.z*(near+far)+2.0*near*far)/(near-far), -p.z);
+}
+vec4 wld2proj(vec4 p) {
+    return view2proj(wld2view(p));
+}
+vec4 wld2proj(vec3 p) {
+    return wld2proj(vec4(p,1.0));
+}
+`;
+
+	let canvas: HTMLCanvasElement;
+	let panel: HTMLDetailsElement;
+	let cards: HTMLDivElement;
+	let vrButton: HTMLButtonElement;
+	let arButton: HTMLButtonElement;
+	let settingButton: HTMLButtonElement;
+	let sourceLink: HTMLAnchorElement;
+
+	const keys = Object.keys(demos);
+	const singleMode = keys.length == 1;
+	if (singleMode) {
+		defaultDemo = keys[0];
+	}
+
+	type Demos = typeof demos;
+	type DemoClass = Demos[keyof Demos];
+	type Demo = InstanceType<DemoClass>;
+
+	let z: ZGL;
+	let demo: Demo | null = null;
+	let gui: any = null;
+
+	let xrDemos = Object.values(demos).filter((f) => 'Tags' in f && f.Tags.includes('3d'));
+	let xrSession: XRSession | null = null;
+	let xrRefSpace: XRReferenceSpace | null = null;
+	let xrPose: any = null;
+	let lookUpStartTime = 0;
+	let haveVR = false;
+	let haveAR = false;
+	let viewParams = {
+		canvasSize: new Float32Array(2),
+		pointer: new Float32Array(3),
+		cameraYPD: new Float32Array(3),
+		xrRay: new Float32Array(16 * 2),
+		xrRayInv: new Float32Array(16 * 2),
+		xrButton: new Float32Array(4 * 2)
+	};
+	let withCamera: WrappedZGL;
 
 	onMount(() => {
-		app = new DemoApp(demos);
+		const gl = canvas.getContext('webgl2', {
+			alpha: false,
+			antialias: true,
+			xrCompatible: true
+		}) as WebGL2RenderingContext;
+		z = zgl(gl);
+		if (navigator.xr) {
+			navigator.xr.isSessionSupported('immersive-vr').then((supported: boolean) => {
+				haveVR = supported;
+				updateVRButtons();
+			});
+			navigator.xr.isSessionSupported('immersive-ar').then((supported: boolean) => {
+				haveAR = supported;
+				updateVRButtons();
+			});
+		}
+
+		resetCamera();
+
+		withCamera = z.hook((z, params, target) => {
+			params = { ...params, Inc: glsl_include + (params.Inc || '') };
+			if (target || !params.xrMode) {
+				return z(params, target);
+			}
+			delete params.Aspect;
+			let glLayer = xrSession!.renderState.baseLayer!;
+			target = {
+				bind: (gl: GL) => {
+					gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
+					return [glLayer.framebufferWidth, glLayer.framebufferHeight];
+				}
+			};
+			for (let view of xrPose.views) {
+				const vp = glLayer.getViewport(view)!;
+				params.View = [vp.x, vp.y, vp.width, vp.height];
+				params.xrProjectionMatrix = view.projectionMatrix;
+				params.xrViewMatrix = view.transform.inverse.matrix;
+				let { x, y, z } = view.transform.position;
+				params.xrPosition = [x, y, z];
+				z(params, target);
+			}
+		});
+
+		const setPointer = (e: PointerEvent, buttons: number) => {
+			const [w, h] = viewParams.canvasSize;
+			const [x, y] = [e.offsetX - w / 2, h / 2 - e.offsetY];
+			viewParams.pointer.set([x, y, buttons]);
+			return [x, y];
+		};
+		canvas.addEventListener('pointerdown', (e) => {
+			if (!e.isPrimary) return;
+			setPointer(e, e.buttons);
+			if (window.innerWidth < 500) {
+				// close menu on small screens
+				panel.removeAttribute('open');
+			}
+		});
+		canvas.addEventListener('pointerout', (e) => setPointer(e, 0));
+		canvas.addEventListener('pointerup', (e) => setPointer(e, 0));
+		canvas.addEventListener('pointermove', (e) => {
+			const [px, py, _] = viewParams.pointer;
+			const [x, y] = setPointer(e, e.buttons);
+			if (!e.isPrimary || e.buttons != 1) return;
+			let [yaw, pitch, dist] = viewParams.cameraYPD;
+			yaw -= (x - px) * 0.01;
+			pitch += (y - py) * 0.01;
+			pitch = Math.min(Math.max(pitch, 0), Math.PI);
+			viewParams.cameraYPD.set([yaw, pitch, dist]);
+		});
+
+		let name = location.hash.slice(1);
+		if (!(name in demos)) {
+			name = defaultDemo;
+		}
+		runDemo(name);
+		populatePreviews();
+
+		requestAnimationFrame(frame);
 	});
 
-	function fullscreen() {
-		app.fullscreen();
+	function setDisplay(el: HTMLElement, val: string) {
+		el.style.display = val;
 	}
-	function toggleGui() {
-		app.toggleGui();
+
+	function resetCamera() {
+		viewParams.cameraYPD.set([(Math.PI * 3) / 4, Math.PI / 4, 1.8]);
 	}
+
+	function frame(t: number) {
+		requestAnimationFrame(frame);
+		if (xrSession) return; // skip canvas frames when XR is running
+		z.adjustCanvas(1); // fix devicePixelRatio to 1
+		viewParams.canvasSize.set([canvas.clientWidth, canvas.clientHeight]);
+
+		demo!.frame(withCamera, {
+			time: t / 1000.0,
+			xrMode: false,
+			...viewParams
+		});
+	}
+
+	function xrFrameCallback(t: number, xrFrame: XRFrame) {
+		xrSession!.requestAnimationFrame(xrFrameCallback);
+		xrPose = xrFrame.getViewerPose(xrRefSpace!);
+		if (!xrPose) return;
+		viewParams.xrRay.fill(0.0);
+		viewParams.xrRayInv.fill(0.0);
+		viewParams.xrButton.fill(0.0);
+		const params = { time: t / 1000.0, xrMode: true, ...viewParams };
+		for (let i = 0; i < 2; ++i) {
+			const inputSource = xrSession!.inputSources[i];
+			if (inputSource && inputSource.gamepad && inputSource.gamepad.buttons) {
+				inputSource.gamepad.buttons.forEach((btn, btnIdx) => {
+					if (btnIdx < 4) viewParams.xrButton[i * 4 + btnIdx] = btn.value || btn.pressed ? 1 : 0;
+				});
+			}
+			if (!inputSource || !inputSource.targetRaySpace) continue;
+			const pose = xrFrame.getPose(inputSource.targetRaySpace, xrRefSpace!);
+			if (!pose) continue;
+			viewParams.xrRay.set(pose.transform.matrix, i * 16);
+			viewParams.xrRayInv.set(pose.transform.inverse.matrix, i * 16);
+		}
+
+		demo!.frame(withCamera, params);
+		withCamera({
+			...params,
+			Mesh: [20, 20],
+			Grid: [2],
+			DepthTest: 1,
+			VP: `
+            varying vec3 p = uv2sphere(UV);
+            varying vec4 buttons = xrButton[ID.x];
+            VPos = wld2proj(xrRay[ID.x]*vec4(p*vec3(0.02, 0.02, 0.1),1));`,
+			FP: `
+            vec3 c = p*0.5+0.5;
+            FOut = vec4(c*0.5,1);
+            float b = c.z*4.0;
+            if (b<4.0 && buttons[int(b)]>fract(b)) FOut += 0.5;`
+		});
+
+		const lookUpCoef = -xrPose.transform.matrix[10];
+		if (!singleMode && lookUpCoef > 0.5) {
+			const dt = (t - lookUpStartTime) / 1000;
+			if (dt > 1) {
+				lookUpStartTime = t;
+				let i = xrDemos.indexOf(demo!.constructor as DemoClass);
+				i = (i + 1) % xrDemos.length;
+				runDemo(xrDemos[i].name);
+			} else {
+				withCamera({
+					...params,
+					Mesh: [20, 20],
+					dt,
+					DepthTest: 1,
+					VP: `
+                vec3 p = uv2sphere(UV)*0.6*clamp(1.0-dt, 0.0, 0.8) + vec3(-2.0, 0.0, 3.0);
+                VPos = wld2proj(vec4(p,1));`,
+					FP: `UV,0.5,1`
+				});
+			}
+		} else {
+			lookUpStartTime = t;
+		}
+	}
+
+	function toggleXR(xr: 'vr' | 'ar') {
+		if (!xrSession) {
+			navigator.xr!.requestSession(`immersive-${xr}`).then((session) => {
+				xrSession = session;
+				session.addEventListener('end', () => {
+					xrSession = null;
+				});
+				session.updateRenderState({ baseLayer: new XRWebGLLayer(session, z.gl) });
+				session.requestReferenceSpace('local').then((refSpace) => {
+					xrRefSpace = refSpace.getOffsetReferenceSpace(
+						new XRRigidTransform(
+							{ x: 0, y: -0.25, z: -1.0, w: 1 }, // position offset
+							{ x: 0.5, y: 0.5, z: 0.5, w: -0.5 }
+						) // rotate z up
+					);
+					session.requestAnimationFrame(xrFrameCallback);
+				});
+			});
+		} else {
+			xrSession.end();
+		}
+	}
+
 	function toggleVR() {
-		app.toggleXR('vr');
+		toggleXR('vr');
 	}
 	function toggleAR() {
-		app.toggleXR('ar');
+		toggleXR('ar');
 	}
+
+	function runDemo(name: string) {
+		if (demo) {
+			if (gui) gui.destroy();
+			if ('free' in demo) demo.free();
+			z.reset();
+			demo = gui = null;
+		}
+		if (!singleMode) location.hash = name;
+		if (self.dat) {
+			gui = new dat.GUI();
+			gui.domElement.id = 'gui';
+			gui.hide();
+		}
+		demo = new demos[name as keyof Demos](withCamera, gui);
+		if (gui && gui.__controllers.length == 0) {
+			gui.destroy();
+			gui = null;
+		}
+		setDisplay(settingButton, gui ? 'block' : 'none');
+		if (sourceLink) {
+			sourceLink.href = `https://github.com/pluvial/zgl/blob/main/src/routes/demo/${name}.js`;
+		}
+		updateVRButtons();
+		resetCamera();
+	}
+
+	function updateVRButtons() {
+		setDisplay(vrButton, 'none');
+		setDisplay(arButton, 'none');
+		const constructor = demo!.constructor as DemoClass;
+		const tags = demo && 'Tags' in constructor && constructor.Tags;
+		if (tags && tags.includes('3d')) {
+			if (haveVR) setDisplay(vrButton, 'block');
+			if (haveAR) setDisplay(arButton, 'block');
+		}
+	}
+
+	function populatePreviews() {
+		if (!cards) return;
+		Object.keys(demos).forEach((name) => {
+			const el = document.createElement('div');
+			el.classList.add('card');
+			el.innerHTML = `<img src="/preview/${name}.jpg">${name}`;
+			el.addEventListener('click', () => runDemo(name));
+			cards.appendChild(el);
+		});
+	}
+
+	// helper function to render demo preview images
+	function genPreviews() {
+		cards.innerHTML = '';
+		const canvas = document.createElement('canvas');
+		canvas.width = 400;
+		canvas.height = 300;
+		const z = zgl(canvas);
+		const withCamera = z.hook((z, p, t) => z({ ...p, Inc: glsl_include + (p.Inc || '') }, t));
+		Object.keys(demos).forEach((name) => {
+			if (name == 'Spectrogram') return;
+			const dummyGui = new dat.GUI();
+			const demo = new demos[name as keyof Demos](withCamera, dummyGui);
+			dummyGui.destroy();
+			resetCamera();
+			for (let i = 0; i < 60 * 5; ++i) {
+				withCamera({ Clear: 0 }, '');
+				demo.frame(withCamera, { time: i / 60.0, ...viewParams });
+			}
+			const el = document.createElement('div');
+			const data = canvas.toDataURL('image/jpeg', 0.95);
+			el.innerHTML = `
+             <a href="${data}" download="${name}.jpg"><img src="${data}"></a>
+             ${name}`;
+			cards.appendChild(el);
+			if ('free' in demo) demo.free();
+			z.reset();
+		});
+	}
+
+	function toggleGui() {
+		if (!gui) return;
+		const style = gui.domElement.style;
+		style.display = style.display == 'none' ? '' : 'none';
+	}
+
+	function fullscreen() {
+		canvas.requestFullscreen();
+	}
+
+	onMount(() => {});
 </script>
 
 <svelte:head>
 	<script src="/dat.gui.min.js"></script>
 </svelte:head>
 
-<details id="panel" open>
+<details bind:this={panel} open>
 	<summary><a href="https://github.com/pluvial/zgl">ZGL</a> demos</summary>
-	<div id="cards" />
+	<div class="cards" bind:this={cards} />
 </details>
-<div id="demo">
-	<canvas id="c" width="640" height="360" />
+<div class="demo">
+	<canvas bind:this={canvas} width="640" height="360" />
 </div>
-<div id="buttons">
-	<button title="VR" on:click={toggleVR} id="vrButton">VR</button>
-	<button title="AR" on:click={toggleAR} id="arButton">AR</button>
-	<button title="settings" on:click={toggleGui} id="settingButton" style="font-size: 180%;"
-		>⛯</button
+<div class="buttons">
+	<button bind:this={vrButton} on:click={toggleVR} class="vrButton" title="VR">VR</button>
+	<button bind:this={arButton} on:click={toggleAR} class="arButton" title="AR">AR</button>
+	<button
+		bind:this={settingButton}
+		on:click={toggleGui}
+		class="settingButton"
+		style:font-size="100%"
+		title="settings">⛯</button
 	>
-	<a id="sourceLink" href="" target="_blank"><button title="source code">&lt;&gt;</button></a>
+	<a bind:this={sourceLink} class="sourceLink" href="" target="_blank"
+		><button title="source code">&lt;&gt;</button></a
+	>
 	<button title="fullscreen" on:click={fullscreen}>⛶</button>
 </div>
 
@@ -55,17 +404,17 @@
 		user-select: none;
 	}
 
-	#panel {
+	details {
 		width: 200px;
 		position: fixed;
 		background: rgba(0, 0, 0, 0.5);
 	}
 
-	#panel summary {
+	details summary {
 		padding: 8px;
 	}
 
-	#cards {
+	.cards {
 		overflow: auto;
 		height: 95vh;
 	}
@@ -78,16 +427,16 @@
 		font-size: 14px;
 	}
 
-	#panel :global(img) {
+	details :global(img) {
 		max-width: 100%;
 	}
 
-	#demo {
+	.demo {
 		width: 100%;
 		height: 100vh;
 	}
 
-	#c {
+	canvas {
 		width: 100%;
 		height: 100%;
 		background: black;
@@ -100,7 +449,7 @@
 		right: 50px;
 	}
 
-	#buttons {
+	.buttons {
 		position: fixed;
 		bottom: 10px;
 		right: 10px;
@@ -124,7 +473,7 @@
 		background-color: rgba(80, 80, 80, 0.8);
 	}
 
-	#buttons a {
+	.buttons a {
 		text-decoration: none;
 	}
 
