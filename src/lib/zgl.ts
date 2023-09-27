@@ -859,10 +859,9 @@ function getTargetSize(
 	return [Math.ceil(size[0] * scale), Math.ceil(size[1] * scale)];
 }
 
-function createTarget(
-	gl: GL,
-	params: TargetParams & { story?: number }
-): TextureTarget | TextureTarget[] {
+type TargetResult = TextureTarget | TextureTarget[];
+
+function createTarget(gl: GL, params: TargetParams & { story?: number }): TargetResult {
 	if (!params.story) return new TextureTarget(gl, params);
 	return Array(params.story)
 		.fill(0)
@@ -891,7 +890,7 @@ export type Spec = {
 	wrap?: Wrap;
 };
 
-function prepareOwnTarget(self: Self, spec: Spec): TextureTarget | TextureTarget[] {
+function prepareOwnTarget(self: Self, spec: Spec): TargetResult {
 	const buffers = self.buffers;
 	spec.size = getTargetSize(self.gl, spec);
 	if (!buffers[spec.tag]) {
@@ -910,7 +909,7 @@ function prepareOwnTarget(self: Self, spec: Spec): TextureTarget | TextureTarget
 	return buffers[spec.tag];
 }
 
-function bindTarget(gl: GL, target?: TextureTarget | TextureTarget[]) {
+function bindTarget(gl: GL, target?: TargetResult | null) {
 	if (!target) {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		return [gl.canvas.width, gl.canvas.height];
@@ -963,7 +962,7 @@ export type Params = Partial<Options & Record<string, any>>;
 
 export type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
 
-function drawQuads(self: Self, params: Params, target?: Target): TextureTarget | TextureTarget[] {
+function drawQuads(self: Self, params: Params, target?: Target | null): TargetResult {
 	const options = {} as Options,
 		uniforms = {} as Uniforms;
 	for (const p in params) {
@@ -975,18 +974,18 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 	const noDraw = options.Clear === undefined && noShader;
 
 	// setup target
-	let textureTarget = target as unknown as TextureTarget | TextureTarget[];
+	let targetResult = target as unknown as TargetResult;
 	if (target && 'tag' in target) {
-		textureTarget = prepareOwnTarget(self, target);
-		if (noDraw) return textureTarget;
+		targetResult = prepareOwnTarget(self, target);
+		if (noDraw) return targetResult;
 	}
-	if (Array.isArray(textureTarget)) {
-		uniforms.Src = uniforms.Src || textureTarget[0];
+	if (Array.isArray(targetResult)) {
+		uniforms.Src = uniforms.Src || targetResult[0];
 	}
 
 	// bind (and clear) target
 	const { gl } = self;
-	const targetSize = bindTarget(gl, textureTarget);
+	const targetSize = bindTarget(gl, targetResult);
 	let view = options.View || [0, 0, targetSize[0], targetSize[1]];
 	if (view.length == 2) {
 		view = [0, 0, view[0], view[1]];
@@ -1007,7 +1006,7 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 
 	// setup program
 	if (noShader) {
-		return textureTarget;
+		return targetResult;
 	}
 	const shaderID = Inc + VP + FP;
 	if (!(shaderID in self.shaders)) {
@@ -1063,21 +1062,21 @@ function drawQuads(self: Self, params: Params, target?: Target): TextureTarget |
 	if (options.Face) gl.disable(gl.CULL_FACE);
 	if (options.AlphaCoverage) gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
 	gl.bindVertexArray(null);
-	return textureTarget;
+	return targetResult;
 }
 
-export type Hook = (z: ZGL, params: Params, target?: Target) => void;
+export type Hook = (z: ZGL, params: Params, target?: Target | null) => TargetResult;
 
 export type WrappedZGL = {
-	(params: Params, target?: Target): void;
-	hook: (this: ZGL, hook: Hook) => any;
+	(params: Params, target?: Target | null): TargetResult;
+	hook: (this: ZGL, hook: Hook) => WrappedZGL;
 	gl: GL;
 };
 
 function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
 	const z = this;
 	const f: WrappedZGL = Object.assign(
-		(params: Params, target?: Target) => hook(z, params, target),
+		(params: Params, target?: Target | null) => hook(z, params, target),
 		{
 			hook: wrapZGL,
 			gl: z.gl
@@ -1098,46 +1097,49 @@ export function zgl(canvas_gl: HTMLCanvasElement | GL): ZGL {
 	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 	ensureVertexArray(gl, 1024);
 	let raf: ReturnType<typeof requestAnimationFrame>;
-	const z: ZGL = Object.assign((params: Params, target?: Target) => drawQuads(z, params, target), {
-		hook: wrapZGL,
-		gl,
-		shaders: {},
-		buffers: {},
-		reset() {
-			Object.values(z.shaders).forEach((prog) => gl.deleteProgram(prog));
-			Object.values(z.buffers)
-				.flat()
-				.forEach((target) => target.free());
-			z.shaders = {};
-			z.buffers = {};
-		},
-		adjustCanvas(dpr?: number) {
-			dpr = dpr || self.devicePixelRatio;
-			const canvas = gl.canvas as HTMLCanvasElement;
-			const w = canvas.clientWidth * dpr,
-				h = canvas.clientHeight * dpr;
-			if (canvas.width != w || canvas.height != h) {
-				canvas.width = w;
-				canvas.height = h;
+	const z: ZGL = Object.assign(
+		(params: Params, target?: Target | null) => drawQuads(z, params, target),
+		{
+			hook: wrapZGL,
+			gl,
+			shaders: {},
+			buffers: {},
+			reset() {
+				Object.values(z.shaders).forEach((prog) => gl.deleteProgram(prog));
+				Object.values(z.buffers)
+					.flat()
+					.forEach((target) => target.free());
+				z.shaders = {};
+				z.buffers = {};
+			},
+			adjustCanvas(dpr?: number) {
+				dpr = dpr || self.devicePixelRatio;
+				const canvas = gl.canvas as HTMLCanvasElement;
+				const w = canvas.clientWidth * dpr,
+					h = canvas.clientHeight * dpr;
+				if (canvas.width != w || canvas.height != h) {
+					canvas.width = w;
+					canvas.height = h;
+				}
+			},
+			loop(callback: (arg: { z: ZGL; time: number }) => any) {
+				raf = requestAnimationFrame(function frameFunc(time) {
+					const res = callback({ z, time: time / 1000.0 });
+					if (res != 'stop') raf = requestAnimationFrame(frameFunc);
+				});
+			},
+			stop() {
+				cancelAnimationFrame(raf);
 			}
-		},
-		loop(callback: (arg: { z: ZGL; time: number }) => any) {
-			raf = requestAnimationFrame(function frameFunc(time) {
-				const res = callback({ z, time: time / 1000.0 });
-				if (res != 'stop') raf = requestAnimationFrame(frameFunc);
-			});
-		},
-		stop() {
-			cancelAnimationFrame(raf);
 		}
-	});
+	);
 
 	return z;
 }
 
 export type ZGL = {
-	(params: Params, target?: Target): TextureTarget | TextureTarget[];
-	hook: (hook: Hook) => WrappedZGL;
+	(params: Params, target?: Target | null): TargetResult;
+	hook: (this: ZGL, hook: Hook) => WrappedZGL;
 	gl: GL;
 	buffers: Buffers;
 	shaders: Shaders;
