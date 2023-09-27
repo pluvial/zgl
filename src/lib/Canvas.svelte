@@ -13,7 +13,25 @@
 	});
 </script>
 
-<canvas bind:this={canvas} {...$$restProps}><slot /></canvas>
+<canvas
+	bind:this={canvas}
+	{...$$restProps}
+	on:click
+	on:mousedown
+	on:mouseup
+	on:mousemove
+	on:mouseenter
+	on:mouseleave
+	on:mousewheel
+	on:pointerdown
+	on:pointerup
+	on:pointercancel
+	on:pointermove
+	on:pointerenter
+	on:pointerover
+	on:pointerleave
+	on:pointerout><slot /></canvas
+>
 
 <style>
 	canvas {
