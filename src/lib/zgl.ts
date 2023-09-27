@@ -946,7 +946,7 @@ export type Options = {
 	Mesh: [number, number];
 	Aspect: Aspect;
 	DepthTest: 0 | 1 | boolean | 'keep';
-	AlphaCoverage: boolean;
+	AlphaCoverage: 0 | 1 | boolean;
 	Face: 'front' | 'back';
 };
 
