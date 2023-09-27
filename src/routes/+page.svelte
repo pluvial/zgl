@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import zgl, { type GL, type WrappedZGL, type ZGL } from '$lib/index.js';
-	import demos from './demo/index.js';
+	import demos from '../demos/index.js';
 
 	export let defaultDemo = 'ParticleLife3d';
 
@@ -273,7 +273,7 @@ VPos = wld2proj(vec4(p,1));`,
 		}
 		setDisplay(settingButton, gui ? 'block' : 'none');
 		if (sourceLink) {
-			sourceLink.href = `https://github.com/pluvial/zgl/blob/main/src/routes/demo/${name}.js`;
+			sourceLink.href = `https://github.com/pluvial/zgl/blob/main/src/demos/${name}.js`;
 		}
 		updateVRButtons();
 		resetCamera();
