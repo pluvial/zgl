@@ -2,7 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import zgl, { type GL, type WrappedZGL, type ZGL } from '$lib/index.js';
 	import demos from '../demos/index.js';
-	import glsl_include from '../demos/include.glsl?raw';
+	import glsl_include from '../demos/lib/include.glsl?raw';
 
 	export let defaultDemo = 'ParticleLife3d';
 
