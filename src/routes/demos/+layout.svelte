@@ -1,7 +1,8 @@
 <script lang="ts">
+	import demos from '../../demos/index.svelte.js';
 	import './style.css';
 
-	const demos = import.meta.glob('../../demos/*.svelte');
+	// const demos = import.meta.glob('../../demos/*.svelte');
 
 	const pathToName = (path: string) => path.split('/').pop()!.split('.').shift()!;
 	const camelToKebab = (str: string) =>
