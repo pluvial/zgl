@@ -30,7 +30,7 @@ import Loop from './Loop.svelte';
 import Pluvial from './Pluvial.svelte';
 import Flume from './Flume.svelte';
 
-export default {
+const demos = {
 	NeuralCA,
 	DotCamera,
 	MeshGrid,
@@ -60,3 +60,15 @@ export default {
 	Pluvial,
 	Flume
 };
+
+export default demos;
+
+export const names = Object.keys(demos);
+
+const camelToKebab = (str: string) =>
+	str
+		.replace(/[A-Z]/, (letter) => letter.toLowerCase())
+		.replace(/[A-Z]/g, (letter: string) => `-${letter.toLowerCase()}`);
+
+export const nameToPath = Object.fromEntries(names.map((name) => [name, camelToKebab(name)]));
+export const pathToName = Object.fromEntries(names.map((name) => [camelToKebab(name), name]));
