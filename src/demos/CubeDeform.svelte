@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Canvas } from '$lib/index.js';
-	import glsl_include from '../../glsl/include.glsl?raw';
+	import glsl_include from './include.glsl?raw';
 
 	let canvas: HTMLCanvasElement;
 
@@ -41,31 +41,36 @@
 
 			z({
 				...viewParams,
-				time: t / 1e3,
 				Inc: glsl_include,
-				Mesh: [64, 128],
-				Grid: [5, 5],
+				time: t / 1e3,
+				Grid: [6, 1],
+				Mesh: [20, 20],
 				Aspect: 'fit',
 				DepthTest: 1,
 				VP: `
-vec3 surface_f(vec2 p) {
-    vec2 c = sin(time+p*vec2(ID)*TAU);
-    vec3 pos = torus(p, 1.0, 0.4 + 0.1*c.x + 0.15*c.y)/8.0;
-    pos.xy += (vec2(ID)-vec2(Grid-1)*0.5)*0.4;
-    return pos;
+vec3 surface_f(vec2 xy) {
+    vec3 pos = cubeVert(xy, ID.x);
+    pos += sin(pos*PI+time).zxy*0.2;
+    pos = mix(pos, normalize(pos)*1.5, sin(time)*0.8+0.2);
+    pos.xy *= rot2(PI/4.+time*0.2);
+    pos.yz *= rot2(PI/3.0);
+    return pos*0.4;
 }
 void vertex() {
-    varying vec3 normal;
-    vec4 pos = vec4(SURF(surface_f, UV, normal, 1e-3), 1.0);
-    VPos = wld2proj(pos);
+    varying vec3 color = cubeVert(vec2(0), ID.x)*0.5+0.5, normal;
+    vec4 v = vec4(SURF(surface_f, XY, normal, 1e-3), 1.0);
+    varying vec3 eyeDir = cameraPos()-v.xyz;
+    VPos = wld2proj(v);
 }`,
 				FP: `
-FOut = vec4(normal*0.6, 1);
-vec2 m = UV*vec2(Mesh)/4.0;
-FOut.rgb += (isoline(m.x)+isoline(m.y))*0.2;
-// useful for debugging incorrect face ordering
-// FOut.r += float(!gl_FrontFacing);
-`
+vec3 n = normalize(normal);
+vec3 lightDir = normalize(vec3(0,1,1));
+float diffuse = dot(n, lightDir)*0.5+0.5;
+vec3 halfVec = normalize(lightDir+normalize(eyeDir));
+float spec = smoothstep(0.998, 0.999, dot(halfVec, n));
+FOut.rgb = color*diffuse + 0.3*spec;
+vec2 m = UV*4.0;
+FOut.rgb = mix(FOut.rgb, vec3(1.0), (isoline(m.x)+isoline(m.y))*0.25);`
 			});
 		});
 	}}

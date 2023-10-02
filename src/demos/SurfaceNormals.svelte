@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Canvas } from '$lib/index.js';
-	import glsl_include from '../../glsl/include.glsl?raw';
+	import glsl_include from './include.glsl?raw';
 
 	let canvas: HTMLCanvasElement;
 
@@ -34,30 +34,38 @@
 
 		resetCamera();
 
-		raf = requestAnimationFrame(function render() {
+		raf = requestAnimationFrame(function render(t) {
 			raf = requestAnimationFrame(render);
-			z.adjustCanvas();
+			z.adjustCanvas(1);
 			viewParams.canvasSize.set([canvas.clientWidth, canvas.clientHeight]);
 
 			z({
 				...viewParams,
+				time: t / 1e3,
 				Inc: glsl_include,
-				Grid: [10, 10, 10],
-				Clear: [0.2, 0.2, 0.3, 1],
+				Mesh: [64, 128],
+				Grid: [5, 5],
 				Aspect: 'fit',
 				DepthTest: 1,
-				AlphaCoverage: 1,
 				VP: `
-        vec3 p = color = vec3(ID)/vec3(Grid-1);
-        varying vec3 color = p;
-        vec4 pos = vec4(p-0.5, 1);
-        pos = wld2view(pos);
-        pos.xy += XY*0.03;  // offset quad corners in view space
-        VPos = view2proj(pos);`,
+vec3 surface_f(vec2 p) {
+    vec2 c = sin(time+p*vec2(ID)*TAU);
+    vec3 pos = torus(p, 1.0, 0.4 + 0.1*c.x + 0.15*c.y)/8.0;
+    pos.xy += (vec2(ID)-vec2(Grid-1)*0.5)*0.4;
+    return pos;
+}
+void vertex() {
+    varying vec3 normal;
+    vec4 pos = vec4(SURF(surface_f, UV, normal, 1e-3), 1.0);
+    VPos = wld2proj(pos);
+}`,
 				FP: `
-        float r = length(XY);
-        float alpha = smoothstep(1.0, 1.0-fwidth(r), r);
-        FOut = vec4(color, alpha);`
+FOut = vec4(normal*0.6, 1);
+vec2 m = UV*vec2(Mesh)/4.0;
+FOut.rgb += (isoline(m.x)+isoline(m.y))*0.2;
+// useful for debugging incorrect face ordering
+// FOut.r += float(!gl_FrontFacing);
+`
 			});
 		});
 	}}

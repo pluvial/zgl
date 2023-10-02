@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Canvas } from '$lib/index.js';
-	import glsl_include from '../../glsl/include.glsl?raw';
+	import glsl_include from './include.glsl?raw';
 
 	let canvas: HTMLCanvasElement;
 
@@ -34,29 +34,30 @@
 
 		resetCamera();
 
-		raf = requestAnimationFrame(function render(t) {
+		raf = requestAnimationFrame(function render() {
 			raf = requestAnimationFrame(render);
-			z.adjustCanvas(1);
+			z.adjustCanvas();
 			viewParams.canvasSize.set([canvas.clientWidth, canvas.clientHeight]);
 
 			z({
 				...viewParams,
 				Inc: glsl_include,
-				time: t / 1e3,
-				Mesh: [100, 100],
+				Grid: [10, 10, 10],
+				Clear: [0.2, 0.2, 0.3, 1],
 				Aspect: 'fit',
-				AlphaCoverage: 1,
 				DepthTest: 1,
+				AlphaCoverage: 1,
 				VP: `
-vec4 p = vec4(cos(XY*PI), sin(XY*PI))*0.6;
-p.xw *= rot2(time*0.4);
-VPos = wld2proj(vec4(p.xyz/(1.0-p.w)*0.5, 1));`,
+        vec3 p = color = vec3(ID)/vec3(Grid-1);
+        varying vec3 color = p;
+        vec4 pos = vec4(p-0.5, 1);
+        pos = wld2view(pos);
+        pos.xy += XY*0.03;  // offset quad corners in view space
+        VPos = view2proj(pos);`,
 				FP: `
-vec2 v = UV*rot2(PI/4.)*64.0/sqrt(2.);
-v = smoothstep(0.0, 1.0, (abs(v-round(v))-0.02)/fwidth(v));
-float a = 1.0-v.x*v.y;
-if (a<0.1) discard;
-FOut = vec4(gl_FrontFacing?vec3(.9,.9,.6):vec3(.6,.6,.9), a);`
+        float r = length(XY);
+        float alpha = smoothstep(1.0, 1.0-fwidth(r), r);
+        FOut = vec4(color, alpha);`
 			});
 		});
 	}}
