@@ -194,12 +194,7 @@ function parseBlendImpl(s0?: string): Res | null | undefined {
 }
 const parseBlend = memoize(parseBlendImpl);
 
-function compileShader(
-  gl: GL,
-  code: string,
-  type: number,
-  program: WebGLProgram,
-) {
+function compileShader(code: string, type: number, program: WebGLProgram) {
   code = '#version 300 es\n' + code;
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, code);
@@ -222,10 +217,10 @@ function compileShader(
 
 type Program = WebGLProgram & { setters: Record<string, (arg: any) => void> };
 
-function compileProgram(gl: GL, vs: string, fs: string) {
+function compileProgram(vs: string, fs: string) {
   const program = gl.createProgram() as Program;
-  compileShader(gl, vs, gl.VERTEX_SHADER, program);
-  compileShader(gl, fs, gl.FRAGMENT_SHADER, program);
+  compileShader(vs, gl.VERTEX_SHADER, program);
+  compileShader(fs, gl.FRAGMENT_SHADER, program);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     console.error('shader link error:' + gl.getProgramInfoLog(program));
@@ -446,7 +441,6 @@ function stripVaryings(VP: string) {
 }
 
 function linkShader(
-  gl: GL,
   uniforms: Record<string, any>,
   Inc: string,
   VP: string,
@@ -461,7 +455,6 @@ function linkShader(
   VP = expandVP(stripVaryings(VP));
   const prefix = `${glsl_template}\n${guessed}\n${varyings}\n${Inc}\n`;
   return compileProgram(
-    gl,
     `
 #define VERT
 ${prefix}\n${VP}
@@ -495,7 +488,6 @@ export type Filter = 'linear' | 'nearest' | 'miplinear';
 export type Wrap = 'edge' | 'repeat' | 'mirror';
 
 type TextureSamplerCore = {
-  gl: GL & { _samplers?: Record<string, WebGLSampler> };
   handle: WebGLTexture & { hasMipmap?: boolean };
   gltarget: number;
   layern: number | null;
@@ -504,8 +496,6 @@ type TextureSamplerCore = {
 };
 
 class TextureSampler implements TextureSamplerCore {
-  // @ts-ignore
-  gl: GL & { _samplers?: Record<string, WebGLSampler> };
   // @ts-ignore
   handle: WebGLTexture & { hasMipmap?: boolean };
   // @ts-ignore
@@ -518,12 +508,11 @@ class TextureSampler implements TextureSamplerCore {
   // @ts-ignore
   wrap: Wrap;
   fork(updates: Partial<TextureSamplerCore>) {
-    const { gl, handle, gltarget, layern, filter, wrap } = {
+    const { handle, gltarget, layern, filter, wrap } = {
       ...this,
       ...updates,
     };
     return updateObject(new TextureSampler(), {
-      gl,
       handle,
       gltarget,
       layern,
@@ -551,7 +540,7 @@ class TextureSampler implements TextureSamplerCore {
   }
 
   get _sampler() {
-    const { gl, filter, wrap } = this;
+    const { filter, wrap } = this;
     if (!gl._samplers) {
       gl._samplers = {};
     }
@@ -590,7 +579,7 @@ class TextureSampler implements TextureSamplerCore {
   }
   bindSampler(unit: number) {
     // assume unit is already active
-    const { gl, gltarget, handle } = this;
+    const { gltarget, handle } = this;
     gl.bindTexture(gltarget, handle);
     if (this.filter == 'miplinear' && !handle.hasMipmap) {
       gl.generateMipmap(gltarget);
@@ -626,7 +615,7 @@ export class TextureTarget extends TextureSampler {
   fbo?: WebGLFramebuffer;
   cpu?: CpuArray;
   async?: { all: Set<GpuBuf>; queue: GpuBuf[] };
-  constructor(gl: GL, params: TargetParams) {
+  constructor(params: TargetParams) {
     super();
     let {
       size,
@@ -641,7 +630,7 @@ export class TextureTarget extends TextureSampler {
     if (!depth && format.includes('+')) {
       const [mainFormat, depthFormat] = format.split('+');
       format = mainFormat;
-      depth = new TextureTarget(gl, {
+      depth = new TextureTarget({
         ...params,
         tag: tag + '_depth',
         format: depthFormat,
@@ -654,7 +643,6 @@ export class TextureTarget extends TextureSampler {
     this.gltarget = layern ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
     this.formatInfo = TextureFormats[format];
     updateObject<TextureTarget>(this, {
-      gl,
       _tag: tag,
       format,
       layern,
@@ -664,7 +652,7 @@ export class TextureTarget extends TextureSampler {
     this.update(size, data);
   }
   update(size: [number, number], data: ArrayBufferView | null) {
-    const { gl, handle, gltarget, layern } = this;
+    const { handle, gltarget, layern } = this;
     const { internalFormat, glformat, type } = this.formatInfo;
     const [w, h] = size;
     gl.bindTexture(gltarget, handle);
@@ -700,7 +688,7 @@ export class TextureTarget extends TextureSampler {
       this.depth.update(size, data);
     }
   }
-  attach(gl: GL) {
+  attach() {
     if (!this.layern) {
       const attachment =
         this.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
@@ -727,14 +715,14 @@ export class TextureTarget extends TextureSampler {
       gl.drawBuffers(drawBuffers);
     }
   }
-  bindTarget(gl: GL, readonly = false) {
+  bindTarget(readonly = false) {
     if (this.fbo) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
     } else {
       this.fbo = gl.createFramebuffer()!;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      this.attach(gl);
-      if (this.depth) this.depth.attach(gl);
+      this.attach();
+      if (this.depth) this.depth.attach();
     }
     if (!readonly) {
       this.handle.hasMipmap = false;
@@ -758,8 +746,8 @@ export class TextureTarget extends TextureSampler {
     targetBuf: ArrayBufferView | null,
   ) {
     const { glformat, type } = this.formatInfo;
-    this.bindTarget(this.gl, /*readonly*/ true);
-    this.gl.readPixels(...box, glformat, type, targetBuf);
+    this.bindTarget(/*readonly*/ true);
+    gl.readPixels(...box, glformat, type, targetBuf);
   }
   readSync(...optBox: [number, number, number, number]): CpuArray {
     const { box, n } = this._getBox(optBox);
@@ -768,7 +756,6 @@ export class TextureTarget extends TextureSampler {
     return buf;
   }
   _bindAsyncBuffer(n: number) {
-    const { gl } = this;
     if (!this.async) {
       this.async = { all: new Set(), queue: [] };
     }
@@ -792,7 +779,7 @@ export class TextureTarget extends TextureSampler {
   }
   _deleteAsyncBuf(gpuBuf: GpuBuf) {
     delete gpuBuf.length;
-    this.gl.deleteBuffer(gpuBuf);
+    gl.deleteBuffer(gpuBuf);
     this.async!.all.delete(gpuBuf);
   }
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
@@ -801,7 +788,6 @@ export class TextureTarget extends TextureSampler {
     optBox?: [number, number, number, number],
     optTarget?: ArrayBufferView,
   ) {
-    const { gl } = this;
     const { box, n } = this._getBox(optBox);
     const gpuBuf = this._bindAsyncBuffer(n);
     this._readPixels(box, null);
@@ -816,7 +802,6 @@ export class TextureTarget extends TextureSampler {
     callback: (target: ArrayBufferView) => void,
     optTarget?: ArrayBufferView,
   ) {
-    const { gl } = this;
     if (!gpuBuf.length) {
       // check that gpu buffer is not deleted
       gl.deleteSync(sync);
@@ -849,7 +834,6 @@ export class TextureTarget extends TextureSampler {
     this.async!.queue.push(gpuBuf);
   }
   free() {
-    const gl = this.gl;
     if (this.depth) this.depth.free();
     if (this.fbo) gl.deleteFramebuffer(this.fbo);
     if (this.async) this.async.all.forEach(buf => this._deleteAsyncBuf(buf));
@@ -890,7 +874,7 @@ function calcAspect(
 
 type VA = WebGLVertexArrayObject & { size: number; buf?: WebGLBuffer };
 
-function ensureVertexArray(gl: GL & { _indexVA?: VA }, neededSize: number) {
+function ensureVertexArray(neededSize: number) {
   // gl_VertexID / gl_InstanceID seem to be broken in some configurations
   // (e.g. https://crbug.com/1315104), so I had to fallback to using arrays
   if (gl._indexVA && neededSize <= gl._indexVA.size) return;
@@ -930,18 +914,15 @@ function ensureVertexArray(gl: GL & { _indexVA?: VA }, neededSize: number) {
   console.debug('created:', va);
 }
 
-function getTargetSize(
-  gl: GL,
-  {
-    size,
-    scale = 1,
-    data,
-  }: {
-    size?: [number, number];
-    scale?: number;
-    data?: Target | null;
-  },
-): [number, number] {
+function getTargetSize({
+  size,
+  scale = 1,
+  data,
+}: {
+  size?: [number, number];
+  scale?: number;
+  data?: Target | null;
+}): [number, number] {
   if (!size && data && data instanceof HTMLVideoElement) {
     size = [data.videoWidth, data.videoHeight];
   }
@@ -951,14 +932,11 @@ function getTargetSize(
 
 type TargetResult = TextureTarget | TextureTarget[];
 
-function createTarget(
-  gl: GL,
-  params: TargetParams & { story?: number },
-): TargetResult {
-  if (!params.story) return new TextureTarget(gl, params);
+function createTarget(params: TargetParams & { story?: number }): TargetResult {
+  if (!params.story) return new TextureTarget(params);
   return Array(params.story)
     .fill(0)
-    .map(_ => new TextureTarget(gl, params));
+    .map(_ => new TextureTarget(params));
 }
 
 export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
@@ -978,9 +956,9 @@ export type Spec = {
 };
 
 function prepareOwnTarget(spec: Spec): TargetResult {
-  spec.size = getTargetSize(gl, spec);
+  spec.size = getTargetSize(spec);
   if (!buffers[spec.tag]) {
-    const target = (buffers[spec.tag] = createTarget(gl, spec));
+    const target = (buffers[spec.tag] = createTarget(spec));
     console.debug('created', target);
   }
   const target = buffers[spec.tag];
@@ -995,7 +973,7 @@ function prepareOwnTarget(spec: Spec): TargetResult {
   return buffers[spec.tag];
 }
 
-function bindTarget(gl: GL, target?: TargetResult | null) {
+function bindTarget(target?: TargetResult | null) {
   if (!target) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return [gl.canvas.width, gl.canvas.height];
@@ -1003,7 +981,7 @@ function bindTarget(gl: GL, target?: TargetResult | null) {
   if (Array.isArray(target)) {
     target.unshift((target = target.pop()!));
   }
-  return target.bindTarget(gl);
+  return target.bindTarget();
 }
 
 const OptNames = new Set([
@@ -1070,7 +1048,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   }
 
   // bind (and clear) target
-  const targetSize = bindTarget(gl, targetResult);
+  const targetSize = bindTarget(targetResult);
   let view = options.View || [0, 0, targetSize[0], targetSize[1]];
   if (view.length == 2) {
     view = [0, 0, view[0], view[1]];
@@ -1094,7 +1072,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   }
   const shaderID = Inc + VP + FP;
   if (!(shaderID in shaders)) {
-    shaders[shaderID] = linkShader(gl, uniforms, Inc, VP, FP);
+    shaders[shaderID] = linkShader(uniforms, Inc, VP, FP);
   }
   const prog = shaders[shaderID];
   gl.useProgram(prog);
@@ -1132,7 +1110,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   uniforms.Mesh = options.Mesh || [1, 1]; // 3d for cube?
   const vertN = (uniforms.Mesh[0] * 2 + 3) * uniforms.Mesh[1] - 1;
   const instN = gx * gy * gz;
-  ensureVertexArray(gl, Math.max(vertN, instN));
+  ensureVertexArray(Math.max(vertN, instN));
   gl.bindVertexArray(gl._indexVA!);
 
   // setup uniforms and textures
@@ -1151,14 +1129,17 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   return targetResult;
 }
 
-export const gl: GL & { _indexVA?: VA } = document
+export const gl: GL & {
+  _indexVA?: VA;
+  _samplers?: Record<string, WebGLSampler>;
+} = document
   .querySelector('canvas')!
   .getContext('webgl2', { alpha: false, antialias: true })!;
 gl.getExtension('EXT_color_buffer_float');
 gl.getExtension('OES_texture_float_linear');
 gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
 gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-ensureVertexArray(gl, 1024);
+ensureVertexArray(1024);
 
 let raf: ReturnType<typeof requestAnimationFrame>;
 
