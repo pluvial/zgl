@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZGL</title>
+    <link rel="stylesheet" href="../src/style.css" />
+  </head>
+  <body>
+    <canvas></canvas>
+    <script type="module">
+      import { z, loop, adjustCanvas } from './src/zgl.ts';
+
+      loop(({ time }) => {
+        adjustCanvas();
+        z({
+          time,
+          Aspect: 'cover',
+          FP: `
+sin(length(XY)*vec3(30,30.5,31)
+-time+atan(XY.x,XY.y)*3.),1`,
+        });
+      });
+    </script>
+  </body>
+</html>
