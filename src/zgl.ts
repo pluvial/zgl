@@ -128,16 +128,6 @@ function memoize<T>(f: (k: string) => T) {
   return wrap;
 }
 
-export function updateObject<T extends Record<string, any>>(
-  o: T,
-  updates: Partial<T>,
-) {
-  for (const s in updates) {
-    o[s] = updates[s]!;
-  }
-  return o;
-}
-
 type Res = {
   s: number;
   d: number;
@@ -279,7 +269,8 @@ function guessUniforms(params: Record<string, any>) {
   for (const name in params) {
     const v = params[name];
     let s = null;
-    if (v instanceof TextureSampler) {
+    // TODO: improve object type checking here
+    if (typeof v === 'object') {
       const [type, D] = v.layern ? ['sampler2DArray', '3'] : ['sampler2D', '2'];
       const lookupMacro = v.layern
         ? `#define ${name}(p,l) (_sample(${name}, (p), (l)))`
@@ -363,7 +354,7 @@ ${glsl_main_frag}`,
 export type Filter = 'linear' | 'nearest' | 'miplinear';
 export type Wrap = 'edge' | 'repeat' | 'mirror';
 
-type TextureSamplerCore = {
+type TextureSampler = {
   handle: WebGLTexture & { hasMipmap?: boolean };
   gltarget: number;
   layern: number | null;
@@ -373,24 +364,20 @@ type TextureSamplerCore = {
 
 let _samplers: Record<string, WebGLSampler> | undefined;
 
-class TextureSampler implements TextureSamplerCore {
-  // @ts-ignore
-  handle: WebGLTexture & { hasMipmap?: boolean };
-  // @ts-ignore
-  gltarget: number;
-  // @ts-ignore
-  layern: number | null;
-  // filter: 'linear' | 'nearest' | 'miplinear';
-  // @ts-ignore
-  filter: Filter;
-  // @ts-ignore
-  wrap: Wrap;
-  fork(updates: Partial<TextureSamplerCore>) {
+function textureSampler(): TextureSampler {
+  let handle: WebGLTexture & { hasMipmap?: boolean };
+  let gltarget: number;
+  let layern: number | null;
+  // let filter: 'linear' | 'nearest' | 'miplinear';
+  let filter: Filter;
+  let wrap: Wrap;
+
+  function fork(updates: Partial<TextureSampler>): TextureSampler {
     const { handle, gltarget, layern, filter, wrap } = {
-      ...this,
+      ...self,
       ...updates,
     };
-    return updateObject(new TextureSampler(), {
+    return Object.assign(textureSampler(), {
       handle,
       gltarget,
       layern,
@@ -398,27 +385,18 @@ class TextureSampler implements TextureSamplerCore {
       wrap,
     });
   }
-  get linear() {
-    return this.fork({ filter: 'linear' });
-  }
-  get nearest() {
-    return this.fork({ filter: 'nearest' });
-  }
-  get miplinear() {
-    return this.fork({ filter: 'miplinear' });
-  }
-  get edge() {
-    return this.fork({ wrap: 'edge' });
-  }
-  get repeat() {
-    return this.fork({ wrap: 'repeat' });
-  }
-  get mirror() {
-    return this.fork({ wrap: 'mirror' });
+
+  function bindSampler(unit: number) {
+    // assume unit is already active
+    gl.bindTexture(gltarget, handle);
+    if (filter == 'miplinear' && !handle.hasMipmap) {
+      gl.generateMipmap(gltarget);
+      handle.hasMipmap = true;
+    }
+    gl.bindSampler(unit, _sampler());
   }
 
-  get _sampler() {
-    const { filter, wrap } = this;
+  function _sampler() {
     if (!_samplers) {
       _samplers = {};
     }
@@ -455,16 +433,39 @@ class TextureSampler implements TextureSamplerCore {
     }
     return _samplers[id];
   }
-  bindSampler(unit: number) {
-    // assume unit is already active
-    const { gltarget, handle } = this;
-    gl.bindTexture(gltarget, handle);
-    if (this.filter == 'miplinear' && !handle.hasMipmap) {
-      gl.generateMipmap(gltarget);
-      handle.hasMipmap = true;
-    }
-    gl.bindSampler(unit, this._sampler);
-  }
+
+  const methods = {
+    fork,
+    get linear() {
+      return fork({ filter: 'linear' });
+    },
+    get nearest() {
+      return fork({ filter: 'nearest' });
+    },
+    get miplinear() {
+      return fork({ filter: 'miplinear' });
+    },
+    get edge() {
+      return fork({ wrap: 'edge' });
+    },
+    get repeat() {
+      return fork({ wrap: 'repeat' });
+    },
+    get mirror() {
+      return fork({ wrap: 'mirror' });
+    },
+    bindSampler,
+  };
+
+  const self = Object.assign(methods, {
+    handle,
+    gltarget,
+    layern,
+    filter,
+    wrap,
+  });
+
+  return self;
 }
 
 type GpuBuf = WebGLBuffer & { length?: number };
@@ -739,7 +740,7 @@ function textureTarget(params: TargetParams): TextureTarget {
     free,
   };
 
-  const self = Object.assign(new TextureSampler(), {
+  const self = Object.assign(textureSampler(), {
     _tag: tag,
     format,
     layern,
