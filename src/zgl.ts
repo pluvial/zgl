@@ -984,11 +984,10 @@ export type Spec = {
   wrap?: Wrap;
 };
 
-function prepareOwnTarget(self: Self, spec: Spec): TargetResult {
-  const buffers = self.buffers;
-  spec.size = getTargetSize(self.gl, spec);
+function prepareOwnTarget(spec: Spec): TargetResult {
+  spec.size = getTargetSize(gl, spec);
   if (!buffers[spec.tag]) {
-    const target = (buffers[spec.tag] = createTarget(self.gl, spec));
+    const target = (buffers[spec.tag] = createTarget(gl, spec));
     console.debug('created', target);
   }
   const target = buffers[spec.tag];
@@ -1056,11 +1055,7 @@ export type Params = Partial<Options & Record<string, any>>;
 
 export type Target = WebGLTexture | WebGLTexture[] | Spec | HTMLVideoElement;
 
-function drawQuads(
-  self: Self,
-  params: Params,
-  target?: Target | null,
-): TargetResult {
+function drawQuads(params: Params, target?: Target | null): TargetResult {
   const options = {} as Options,
     uniforms = {} as Uniforms;
   for (const p in params) {
@@ -1074,7 +1069,7 @@ function drawQuads(
   // setup target
   let targetResult = target as unknown as TargetResult;
   if (target && 'tag' in target) {
-    targetResult = prepareOwnTarget(self, target);
+    targetResult = prepareOwnTarget(target);
     if (noDraw) return targetResult;
   }
   if (Array.isArray(targetResult)) {
@@ -1082,7 +1077,6 @@ function drawQuads(
   }
 
   // bind (and clear) target
-  const { gl } = self;
   const targetSize = bindTarget(gl, targetResult);
   let view = options.View || [0, 0, targetSize[0], targetSize[1]];
   if (view.length == 2) {
@@ -1106,10 +1100,10 @@ function drawQuads(
     return targetResult;
   }
   const shaderID = Inc + VP + FP;
-  if (!(shaderID in self.shaders)) {
-    self.shaders[shaderID] = linkShader(gl, uniforms, Inc, VP, FP);
+  if (!(shaderID in shaders)) {
+    shaders[shaderID] = linkShader(gl, uniforms, Inc, VP, FP);
   }
-  const prog = self.shaders[shaderID];
+  const prog = shaders[shaderID];
   gl.useProgram(prog);
 
   // process options
@@ -1188,56 +1182,58 @@ function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
   return f;
 }
 
-export default (canvas_gl: HTMLCanvasElement | GL): ZGL => {
-  const gl =
-    'getContext' in canvas_gl
-      ? canvas_gl.getContext('webgl2', { alpha: false, antialias: true })!
-      : canvas_gl;
-  gl.getExtension('EXT_color_buffer_float');
-  gl.getExtension('OES_texture_float_linear');
-  gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
-  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  ensureVertexArray(gl, 1024);
-  let raf: ReturnType<typeof requestAnimationFrame>;
-  const z: ZGL = Object.assign(
-    (params: Params, target?: Target | null) => drawQuads(z, params, target),
-    {
-      hook: wrapZGL,
-      gl,
-      shaders: {},
-      buffers: {},
-      reset() {
-        Object.values(z.shaders).forEach(prog => gl.deleteProgram(prog));
-        Object.values(z.buffers)
-          .flat()
-          .forEach(target => target.free());
-        z.shaders = {};
-        z.buffers = {};
-      },
-      adjustCanvas(dpr?: number) {
-        dpr = dpr || self.devicePixelRatio;
-        const canvas = gl.canvas as HTMLCanvasElement;
-        const w = canvas.clientWidth * dpr,
-          h = canvas.clientHeight * dpr;
-        if (canvas.width != w || canvas.height != h) {
-          canvas.width = w;
-          canvas.height = h;
-        }
-      },
-      loop(callback: (arg: { z: ZGL; time: number }) => any) {
-        raf = requestAnimationFrame(function frameFunc(time) {
-          const res = callback({ z, time: time / 1000.0 });
-          if (res != 'stop') raf = requestAnimationFrame(frameFunc);
-        });
-      },
-      stop() {
-        cancelAnimationFrame(raf);
-      },
-    },
-  );
+const gl = document
+  .querySelector('canvas')!
+  .getContext('webgl2', { alpha: false, antialias: true })!;
+gl.getExtension('EXT_color_buffer_float');
+gl.getExtension('OES_texture_float_linear');
+gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
+gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+ensureVertexArray(gl, 1024);
 
-  return z;
-};
+let raf: ReturnType<typeof requestAnimationFrame>;
+
+export const z = (params: Params, target?: Target | null) =>
+  drawQuads(params, target);
+
+export const hook = wrapZGL;
+
+export { gl };
+
+export let shaders: Shaders = {};
+
+export let buffers: Buffers = {};
+
+export function reset() {
+  Object.values(shaders).forEach(prog => gl.deleteProgram(prog));
+  Object.values(buffers)
+    .flat()
+    .forEach(target => target.free());
+  shaders = {};
+  buffers = {};
+}
+
+export function adjustCanvas(dpr?: number) {
+  dpr = dpr || self.devicePixelRatio;
+  const canvas = gl.canvas as HTMLCanvasElement;
+  const w = canvas.clientWidth * dpr,
+    h = canvas.clientHeight * dpr;
+  if (canvas.width != w || canvas.height != h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+}
+
+export function loop(callback: (arg: { z: ZGL; time: number }) => any) {
+  raf = requestAnimationFrame(function frameFunc(time) {
+    const res = callback({ z, time: time / 1000.0 });
+    if (res != 'stop') raf = requestAnimationFrame(frameFunc);
+  });
+}
+
+export function stop() {
+  cancelAnimationFrame(raf);
+}
 
 export type ZGL = {
   (params: Params, target?: Target | null): TargetResult;

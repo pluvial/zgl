@@ -1,10 +1,8 @@
-import zgl from './zgl.js';
+import { z, loop, adjustCanvas } from './zgl.js';
 import './style.css';
 
-const z = zgl(document.querySelector('canvas')!);
-
-z.loop(({ time }) => {
-  z.adjustCanvas();
+loop(({ time }) => {
+  adjustCanvas();
   z({
     time,
     Aspect: 'cover',
