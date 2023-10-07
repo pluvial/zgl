@@ -426,19 +426,16 @@ function expandCode(code: string, mainFunc: string, outVar: string) {
 const expandVP = memoize(code => expandCode(code, 'vertex', 'VPos'));
 const expandFP = memoize(code => expandCode(code, 'fragment', 'FOut'));
 
-function extractVaryings(VP: string) {
-  return Array.from(stripComments(VP).matchAll(/\bvarying\s+[^;]+;/g))
+const extractVaryings = (VP: string) =>
+  Array.from(stripComments(VP).matchAll(/\bvarying\s+[^;]+;/g))
     .map(m => m[0])
     .map(s => {
       while (s != (s = s.replace(/\([^()]*\)/g, ''))); // remove nested ()
       return s.replace(/=[^,;]*/g, ''); // remove assigned values
     })
     .join('\n');
-}
 
-function stripVaryings(VP: string) {
-  return VP.replace(/\bvarying\s+\w+/g, '');
-}
+const stripVaryings = (VP: string) => VP.replace(/\bvarying\s+\w+/g, '');
 
 function linkShader(
   uniforms: Record<string, any>,
@@ -935,12 +932,14 @@ function getTargetSize({
 
 type TargetResult = TextureTarget | TextureTarget[];
 
-function createTarget(params: TargetParams & { story?: number }): TargetResult {
-  if (!params.story) return new TextureTarget(params);
-  return Array(params.story)
-    .fill(0)
-    .map(_ => new TextureTarget(params));
-}
+const createTarget = (
+  params: TargetParams & { story?: number },
+): TargetResult =>
+  !params.story
+    ? new TextureTarget(params)
+    : Array(params.story)
+        .fill(0)
+        .map(_ => new TextureTarget(params));
 
 export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
 export type Shaders = Record<string, Program>;
@@ -1177,6 +1176,4 @@ export function loop(callback: (arg: { time: number }) => any) {
   });
 }
 
-export function stop() {
-  cancelAnimationFrame(raf);
-}
+export const stop = () => cancelAnimationFrame(raf);
