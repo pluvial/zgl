@@ -495,6 +495,8 @@ type TextureSamplerCore = {
   wrap: Wrap;
 };
 
+let _samplers: Record<string, WebGLSampler> | undefined;
+
 class TextureSampler implements TextureSamplerCore {
   // @ts-ignore
   handle: WebGLTexture & { hasMipmap?: boolean };
@@ -541,11 +543,11 @@ class TextureSampler implements TextureSamplerCore {
 
   get _sampler() {
     const { filter, wrap } = this;
-    if (!gl._samplers) {
-      gl._samplers = {};
+    if (!_samplers) {
+      _samplers = {};
     }
     const id = `${filter}:${wrap}`;
-    if (!(id in gl._samplers)) {
+    if (!(id in _samplers)) {
       const glfilter = {
         nearest: gl.NEAREST,
         linear: gl.LINEAR,
@@ -573,9 +575,9 @@ class TextureSampler implements TextureSamplerCore {
       setf('MAG_FILTER', filter == 'miplinear' ? gl.LINEAR : glfilter);
       setf('WRAP_S', glwrap);
       setf('WRAP_T', glwrap);
-      gl._samplers[id] = sampler;
+      _samplers[id] = sampler;
     }
-    return gl._samplers[id];
+    return _samplers[id];
   }
   bindSampler(unit: number) {
     // assume unit is already active
@@ -873,16 +875,17 @@ function calcAspect(
 }
 
 type VA = WebGLVertexArrayObject & { size: number; buf?: WebGLBuffer };
+let _indexVA: VA | undefined;
 
 function ensureVertexArray(neededSize: number) {
   // gl_VertexID / gl_InstanceID seem to be broken in some configurations
   // (e.g. https://crbug.com/1315104), so I had to fallback to using arrays
-  if (gl._indexVA && neededSize <= gl._indexVA.size) return;
+  if (_indexVA && neededSize <= _indexVA.size) return;
   const size = neededSize * 2;
 
-  const va = gl._indexVA || (gl.createVertexArray() as VA);
+  const va = _indexVA || (gl.createVertexArray() as VA);
   va.size = size;
-  gl._indexVA = va;
+  _indexVA = va;
   gl.bindVertexArray(va);
 
   const arr = new Int32Array(size);
@@ -1111,7 +1114,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   const vertN = (uniforms.Mesh[0] * 2 + 3) * uniforms.Mesh[1] - 1;
   const instN = gx * gy * gz;
   ensureVertexArray(Math.max(vertN, instN));
-  gl.bindVertexArray(gl._indexVA!);
+  gl.bindVertexArray(_indexVA!);
 
   // setup uniforms and textures
   Object.entries(prog.setters).forEach(([name, f]) =>
@@ -1129,10 +1132,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   return targetResult;
 }
 
-export const gl: GL & {
-  _indexVA?: VA;
-  _samplers?: Record<string, WebGLSampler>;
-} = document
+export const gl: GL = document
   .querySelector('canvas')!
   .getContext('webgl2', { alpha: false, antialias: true })!;
 gl.getExtension('EXT_color_buffer_float');
