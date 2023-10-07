@@ -458,10 +458,15 @@ function textureSampler(): TextureSampler {
   };
 
   const self = Object.assign(methods, {
+    // @ts-ignore
     handle,
+    // @ts-ignore
     gltarget,
+    // @ts-ignore
     layern,
+    // @ts-ignore
     filter,
+    // @ts-ignore
     wrap,
   });
 
