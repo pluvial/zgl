@@ -480,59 +480,30 @@ type TargetParams = {
   depth?: TextureTarget | null;
 };
 
-export class TextureTarget extends TextureSampler {
-  // @ts-ignore
+export type TextureTarget = TextureSampler & {
   size: [number, number];
-  // @ts-ignore
-  _tag: string;
-  // @ts-ignore
   format: string;
   formatInfo: TextureFormat;
-  // @ts-ignore
   depth: TextureTarget | null;
-  fbo?: WebGLFramebuffer;
-  cpu?: CpuArray;
-  async?: { all: Set<GpuBuf>; queue: GpuBuf[] };
-  constructor(params: TargetParams) {
-    super();
-    let {
-      size,
-      tag,
-      format = 'rgba8',
-      filter = 'nearest',
-      wrap = 'repeat',
-      layern = null,
-      data = null,
-      depth = null,
-    } = params;
-    if (!depth && format.includes('+')) {
-      const [mainFormat, depthFormat] = format.split('+');
-      format = mainFormat;
-      depth = new TextureTarget({
-        ...params,
-        tag: tag + '_depth',
-        format: depthFormat,
-        layern: null,
-        depth: null,
-      });
-    }
-    (this.handle = gl.createTexture()!),
-      (this.filter = format == 'depth' ? 'nearest' : filter);
-    this.gltarget = layern ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
-    this.formatInfo = TextureFormats[format];
-    updateObject<TextureTarget>(this, {
-      _tag: tag,
-      format,
-      layern,
-      wrap,
-      depth,
-    });
-    this.update(size, data);
-  }
-  update(size: [number, number], data: ArrayBufferView | null) {
-    const { handle, gltarget, layern } = this;
-    const { internalFormat, glformat, type } = this.formatInfo;
-    const [w, h] = size;
+  // fbo?: WebGLFramebuffer;
+  // cpu?: CpuArray;
+  // async?: { all: Set<GpuBuf>; queue: GpuBuf[] };
+  update: (newSize: [number, number], data: ArrayBufferView | null) => void;
+  attach: () => void;
+  bindTarget: (readonly?: boolean) => [number, number];
+  readSync: (...optBox: [number, number, number, number]) => CpuArray;
+  read: (
+    callback: (target: ArrayBufferView) => void,
+    optBox?: [number, number, number, number],
+    optTarget?: ArrayBufferView,
+  ) => void;
+  free: () => void;
+};
+
+function textureTarget(params: TargetParams): TextureTarget {
+  function update(newSize: [number, number], data: ArrayBufferView | null) {
+    const { internalFormat, glformat, type } = formatInfo;
+    const [w, h] = newSize;
     gl.bindTexture(gltarget, handle);
     if (!layern) {
       gl.texImage2D(
@@ -561,31 +532,32 @@ export class TextureTarget extends TextureSampler {
       );
     }
     gl.bindTexture(gltarget, null);
-    this.size = size;
-    if (this.depth) {
-      this.depth.update(size, data);
+    size = newSize;
+    if (depth) {
+      depth.update(newSize, data);
     }
   }
-  attach() {
-    if (!this.layern) {
+
+  function attach() {
+    if (!layern) {
       const attachment =
-        this.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
+        format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         attachment,
         gl.TEXTURE_2D,
-        this.handle,
+        handle,
         0 /*level*/,
       );
     } else {
       const drawBuffers = [];
-      for (let i = 0; i < this.layern; ++i) {
+      for (let i = 0; i < layern; ++i) {
         const attachment = gl.COLOR_ATTACHMENT0 + i;
         drawBuffers.push(attachment);
         gl.framebufferTextureLayer(
           gl.FRAMEBUFFER,
           attachment,
-          this.handle,
+          handle,
           0 /*level*/,
           i,
         );
@@ -593,88 +565,96 @@ export class TextureTarget extends TextureSampler {
       gl.drawBuffers(drawBuffers);
     }
   }
-  bindTarget(readonly = false) {
-    if (this.fbo) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+
+  function bindTarget(readonly = false) {
+    if (fbo) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     } else {
-      this.fbo = gl.createFramebuffer()!;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
-      this.attach();
-      if (this.depth) this.depth.attach();
+      fbo = gl.createFramebuffer()!;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      attach();
+      if (depth) depth.attach();
     }
     if (!readonly) {
-      this.handle.hasMipmap = false;
+      handle.hasMipmap = false;
     }
-    return this.size;
+    return size;
   }
-  _getBox(box?: [number, number, number, number]) {
-    box = box && box.length ? box : [0, 0, ...this.size];
+
+  function _getBox(box?: [number, number, number, number]) {
+    box = box && box.length ? box : [0, 0, ...size];
     const [, , w, h] = box,
-      n = w * h * this.formatInfo.chn;
+      n = w * h * formatInfo.chn;
     return { box, n };
   }
-  _getCPUBuf(n: number): CpuArray {
-    if (!this.cpu || this.cpu.length < n) {
-      this.cpu = new this.formatInfo.CpuArray(n);
+
+  function _getCPUBuf(n: number): CpuArray {
+    if (!cpu || cpu.length < n) {
+      cpu = new formatInfo.CpuArray(n);
     }
-    return this.cpu.length == n ? this.cpu : this.cpu.subarray(0, n);
+    return cpu.length == n ? cpu : cpu.subarray(0, n);
   }
-  _readPixels(
+
+  function _readPixels(
     box: [number, number, number, number],
     targetBuf: ArrayBufferView | null,
   ) {
-    const { glformat, type } = this.formatInfo;
-    this.bindTarget(/*readonly*/ true);
+    const { glformat, type } = formatInfo;
+    bindTarget(/*readonly*/ true);
     gl.readPixels(...box, glformat, type, targetBuf);
   }
-  readSync(...optBox: [number, number, number, number]): CpuArray {
-    const { box, n } = this._getBox(optBox);
-    const buf = this._getCPUBuf(n);
-    this._readPixels(box, buf);
+
+  function readSync(...optBox: [number, number, number, number]): CpuArray {
+    const { box, n } = _getBox(optBox);
+    const buf = _getCPUBuf(n);
+    _readPixels(box, buf);
     return buf;
   }
-  _bindAsyncBuffer(n: number) {
-    if (!this.async) {
-      this.async = { all: new Set(), queue: [] };
+
+  function _bindAsyncBuffer(n: number) {
+    if (!async) {
+      async = { all: new Set(), queue: [] };
     }
-    if (this.async.queue.length == 0) {
+    if (async.queue.length == 0) {
       const gpuBuf = gl.createBuffer()!;
-      this.async.queue.push(gpuBuf);
-      this.async.all.add(gpuBuf);
+      async.queue.push(gpuBuf);
+      async.all.add(gpuBuf);
     }
-    const gpuBuf = this.async.queue.shift()!;
-    if (this.async.queue.length > 6) {
-      this._deleteAsyncBuf(this.async.queue.pop()!);
+    const gpuBuf = async.queue.shift()!;
+    if (async.queue.length > 6) {
+      _deleteAsyncBuf(async.queue.pop()!);
     }
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
     if (!gpuBuf.length || gpuBuf.length < n) {
-      const byteN = n * this.formatInfo.CpuArray.BYTES_PER_ELEMENT;
+      const byteN = n * formatInfo.CpuArray.BYTES_PER_ELEMENT;
       gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
       gpuBuf.length = n;
-      console.debug(`created/resized async gpu buffer "${this._tag}":`, gpuBuf);
+      console.debug(`created/resized async gpu buffer "${_tag}":`, gpuBuf);
     }
     return gpuBuf;
   }
-  _deleteAsyncBuf(gpuBuf: GpuBuf) {
+
+  function _deleteAsyncBuf(gpuBuf: GpuBuf) {
     delete gpuBuf.length;
     gl.deleteBuffer(gpuBuf);
-    this.async!.all.delete(gpuBuf);
+    async!.all.delete(gpuBuf);
   }
+
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
-  read(
+  function read(
     callback: (target: ArrayBufferView) => void,
     optBox?: [number, number, number, number],
     optTarget?: ArrayBufferView,
   ) {
-    const { box, n } = this._getBox(optBox);
-    const gpuBuf = this._bindAsyncBuffer(n);
-    this._readPixels(box, null);
+    const { box, n } = _getBox(optBox);
+    const gpuBuf = _bindAsyncBuffer(n);
+    _readPixels(box, null);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
     gl.flush();
-    this._asyncFetch(gpuBuf, sync, callback, optTarget);
+    _asyncFetch(gpuBuf, sync, callback, optTarget);
   }
-  _asyncFetch(
+  function _asyncFetch(
     gpuBuf: GpuBuf,
     sync: WebGLSync,
     callback: (target: ArrayBufferView) => void,
@@ -688,16 +668,16 @@ export class TextureTarget extends TextureSampler {
     const res = gl.clientWaitSync(sync, 0, 0);
     if (res === gl.TIMEOUT_EXPIRED) {
       setTimeout(
-        () => this._asyncFetch(gpuBuf, sync, callback, optTarget),
+        () => _asyncFetch(gpuBuf, sync, callback, optTarget),
         1 /*ms*/,
       );
       return;
     }
     if (res === gl.WAIT_FAILED) {
-      console.debug(`async read of ${this._tag} failed`);
+      console.debug(`async read of ${_tag} failed`);
     } else {
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
-      const target = optTarget || this._getCPUBuf(gpuBuf.length);
+      const target = optTarget || _getCPUBuf(gpuBuf.length);
       gl.getBufferSubData(
         gl.PIXEL_PACK_BUFFER,
         0 /*srcOffset*/,
@@ -709,14 +689,71 @@ export class TextureTarget extends TextureSampler {
       callback(target);
     }
     gl.deleteSync(sync);
-    this.async!.queue.push(gpuBuf);
+    async!.queue.push(gpuBuf);
   }
-  free() {
-    if (this.depth) this.depth.free();
-    if (this.fbo) gl.deleteFramebuffer(this.fbo);
-    if (this.async) this.async.all.forEach(buf => this._deleteAsyncBuf(buf));
-    gl.deleteTexture(this.handle);
+
+  function free() {
+    if (depth) depth.free();
+    if (fbo) gl.deleteFramebuffer(fbo);
+    if (async) async.all.forEach(buf => _deleteAsyncBuf(buf));
+    gl.deleteTexture(handle);
   }
+
+  let {
+    size,
+    tag,
+    format = 'rgba8',
+    filter = 'nearest',
+    wrap = 'repeat',
+    layern = null,
+    data = null,
+    depth = null,
+  } = params;
+  if (!depth && format.includes('+')) {
+    const [mainFormat, depthFormat] = format.split('+');
+    format = mainFormat;
+    depth = textureTarget({
+      ...params,
+      tag: tag + '_depth',
+      format: depthFormat,
+      layern: null,
+      depth: null,
+    });
+  }
+  let _tag: string;
+  let fbo: WebGLFramebuffer | undefined;
+  let cpu: CpuArray | undefined;
+  let async: { all: Set<GpuBuf>; queue: GpuBuf[] } | undefined;
+
+  let handle: WebGLTexture & { hasMipmap?: boolean } = gl.createTexture()!;
+  filter = format == 'depth' ? 'nearest' : filter;
+  let gltarget = layern ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D;
+  let formatInfo = TextureFormats[format];
+
+  const methods = {
+    update,
+    attach,
+    bindTarget,
+    readSync,
+    read,
+    free,
+  };
+
+  const self = Object.assign(new TextureSampler(), {
+    _tag: tag,
+    format,
+    layern,
+    wrap,
+    depth,
+
+    formatInfo,
+    size,
+    ...methods,
+  });
+
+  update(size, data);
+
+  return self;
 }
 
 export type Aspect = 'fit' | 'cover' | 'mean' | 'x' | 'y';
@@ -815,10 +852,10 @@ const createTarget = (
   params: TargetParams & { story?: number },
 ): TargetResult =>
   !params.story
-    ? new TextureTarget(params)
+    ? textureTarget(params)
     : Array(params.story)
         .fill(0)
-        .map(_ => new TextureTarget(params));
+        .map(_ => textureTarget(params));
 
 export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
 export type Shaders = Record<string, Program>;
