@@ -743,7 +743,7 @@ export class TextureTarget extends TextureSampler {
   }
   _getBox(box?: [number, number, number, number]) {
     box = box && box.length ? box : [0, 0, ...this.size];
-    const [x, y, w, h] = box,
+    const [, , w, h] = box,
       n = w * h * this.formatInfo.chn;
     return { box, n };
   }
@@ -769,7 +769,6 @@ export class TextureTarget extends TextureSampler {
   }
   _bindAsyncBuffer(n: number) {
     const { gl } = this;
-    const { CpuArray } = this.formatInfo;
     if (!this.async) {
       this.async = { all: new Set(), queue: [] };
     }
@@ -903,7 +902,7 @@ function ensureVertexArray(gl: GL & { _indexVA?: VA }, neededSize: number) {
   gl.bindVertexArray(va);
 
   const arr = new Int32Array(size);
-  arr.forEach((v, i) => {
+  arr.forEach((_, i) => {
     arr[i] = i;
   });
 
@@ -964,12 +963,6 @@ function createTarget(
 
 export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
 export type Shaders = Record<string, Program>;
-
-type Self = {
-  gl: GL & { _indexVA?: VA };
-  buffers: Buffers;
-  shaders: Shaders;
-};
 
 export type Spec = {
   size: [number, number];
@@ -1158,31 +1151,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   return targetResult;
 }
 
-export type Hook = (
-  z: ZGL,
-  params: Params,
-  target?: Target | null,
-) => TargetResult;
-
-export type WrappedZGL = {
-  (params: Params, target?: Target | null): TargetResult;
-  hook: (this: ZGL, hook: Hook) => WrappedZGL;
-  gl: GL;
-};
-
-function wrapZGL(this: ZGL, hook: Hook): WrappedZGL {
-  const z = this;
-  const f: WrappedZGL = Object.assign(
-    (params: Params, target?: Target | null) => hook(z, params, target),
-    {
-      hook: wrapZGL,
-      gl: z.gl,
-    },
-  );
-  return f;
-}
-
-const gl = document
+export const gl: GL & { _indexVA?: VA } = document
   .querySelector('canvas')!
   .getContext('webgl2', { alpha: false, antialias: true })!;
 gl.getExtension('EXT_color_buffer_float');
@@ -1195,10 +1164,6 @@ let raf: ReturnType<typeof requestAnimationFrame>;
 
 export const z = (params: Params, target?: Target | null) =>
   drawQuads(params, target);
-
-export const hook = wrapZGL;
-
-export { gl };
 
 export let shaders: Shaders = {};
 
@@ -1224,9 +1189,9 @@ export function adjustCanvas(dpr?: number) {
   }
 }
 
-export function loop(callback: (arg: { z: ZGL; time: number }) => any) {
+export function loop(callback: (arg: { time: number }) => any) {
   raf = requestAnimationFrame(function frameFunc(time) {
-    const res = callback({ z, time: time / 1000.0 });
+    const res = callback({ time: time / 1000.0 });
     if (res != 'stop') raf = requestAnimationFrame(frameFunc);
   });
 }
@@ -1234,15 +1199,3 @@ export function loop(callback: (arg: { z: ZGL; time: number }) => any) {
 export function stop() {
   cancelAnimationFrame(raf);
 }
-
-export type ZGL = {
-  (params: Params, target?: Target | null): TargetResult;
-  hook: (this: ZGL, hook: Hook) => WrappedZGL;
-  gl: GL;
-  buffers: Buffers;
-  shaders: Shaders;
-  reset(): void;
-  adjustCanvas(dpr?: number): void;
-  loop(callback: (arg: { z: ZGL; time: number }) => any): void;
-  stop(): void;
-};
