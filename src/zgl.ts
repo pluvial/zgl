@@ -805,7 +805,7 @@ function getTargetSize({
   if (!size && data && data instanceof HTMLVideoElement) {
     size = [data.videoWidth, data.videoHeight];
   }
-  size = size || [gl.canvas.width, gl.canvas.height];
+  size = size || [canvas.width, canvas.height];
   return [Math.ceil(size[0] * scale), Math.ceil(size[1] * scale)];
 }
 
@@ -857,7 +857,7 @@ function prepareOwnTarget(spec: Spec): TargetResult {
 function bindTarget(target?: TargetResult | null) {
   if (!target) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return [gl.canvas.width, gl.canvas.height];
+    return [canvas.width, canvas.height];
   }
   if (Array.isArray(target)) {
     target.unshift((target = target.pop()!));
@@ -1010,9 +1010,11 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   return targetResult;
 }
 
-export const gl: GL = document
-  .querySelector('canvas')!
-  .getContext('webgl2', { alpha: false, antialias: true })!;
+export const canvas = document.querySelector('canvas')!;
+export const gl: GL = canvas.getContext('webgl2', {
+  alpha: false,
+  antialias: true,
+})!;
 gl.getExtension('EXT_color_buffer_float');
 gl.getExtension('OES_texture_float_linear');
 gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
@@ -1039,7 +1041,6 @@ export function reset() {
 
 export function adjustCanvas(dpr?: number) {
   dpr = dpr || self.devicePixelRatio;
-  const canvas = gl.canvas as HTMLCanvasElement;
   const w = canvas.clientWidth * dpr,
     h = canvas.clientHeight * dpr;
   if (canvas.width != w || canvas.height != h) {
