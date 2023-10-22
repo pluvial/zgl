@@ -493,14 +493,14 @@ type TextureTargetMethods = {
   //   box: [number, number, number, number],
   //   targetBuf: ArrayBufferView | null,
   // ): void;
-  // readSync(...optBox: [number, number, number, number]): CpuArray;
+  readSync(...optBox: [number, number, number, number]): CpuArray;
   // _bindAsyncBuffer(n: number): GpuBuf;
   // _deleteAsyncBuf(gpuBuf: GpuBuf): void;
-  // read(
-  //   callback: (target: ArrayBufferView) => void,
-  //   optBox?: [number, number, number, number],
-  //   optTarget?: ArrayBufferView,
-  // ): void;
+  read(
+    callback: (target: ArrayBufferView) => void,
+    optBox?: [number, number, number, number],
+    optTarget?: ArrayBufferView,
+  ): void;
   // _asyncFetch(
   //   gpuBuf: GpuBuf,
   //   sync: WebGLSync,
@@ -605,61 +605,61 @@ function textureTarget(params: TargetParams) {
     return self.size;
   }
 
-  // function _getBox(box?: [number, number, number, number]): {
-  //   box: [number, number, number, number];
-  //   n: number;
-  // } {
-  //   box = box && box.length ? box : [0, 0, ...self.size];
-  //   const [, , w, h] = box,
-  //     n = w * h * self.formatInfo.chn;
-  //   return { box, n };
-  // }
+  function _getBox(box?: [number, number, number, number]): {
+    box: [number, number, number, number];
+    n: number;
+  } {
+    box = box && box.length ? box : [0, 0, ...self.size];
+    const [, , w, h] = box,
+      n = w * h * self.formatInfo.chn;
+    return { box, n };
+  }
 
-  // function _getCPUBuf(n: number): CpuArray {
-  //   if (!self.cpu || self.cpu.length < n) {
-  //     self.cpu = new self.formatInfo.CpuArray(n);
-  //   }
-  //   return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
-  // }
+  function _getCPUBuf(n: number): CpuArray {
+    if (!self.cpu || self.cpu.length < n) {
+      self.cpu = new self.formatInfo.CpuArray(n);
+    }
+    return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
+  }
 
-  // function _readPixels(
-  //   box: [number, number, number, number],
-  //   targetBuf: ArrayBufferView | null,
-  // ) {
-  //   const { glformat, type } = self.formatInfo;
-  //   bindTarget(/*readonly*/ true);
-  //   gl.readPixels(...box, glformat, type, targetBuf);
-  // }
+  function _readPixels(
+    box: [number, number, number, number],
+    targetBuf: ArrayBufferView | null,
+  ) {
+    const { glformat, type } = self.formatInfo;
+    bindTarget(/*readonly*/ true);
+    gl.readPixels(...box, glformat, type, targetBuf);
+  }
 
-  // function readSync(...optBox: [number, number, number, number]): CpuArray {
-  //   const { box, n } = _getBox(optBox);
-  //   const buf = _getCPUBuf(n);
-  //   _readPixels(box, buf);
-  //   return buf;
-  // }
+  function readSync(...optBox: [number, number, number, number]): CpuArray {
+    const { box, n } = _getBox(optBox);
+    const buf = _getCPUBuf(n);
+    _readPixels(box, buf);
+    return buf;
+  }
 
-  // function _bindAsyncBuffer(n: number): GpuBuf {
-  //   if (!self.async) {
-  //     self.async = { all: new Set(), queue: [] };
-  //   }
-  //   if (self.async.queue.length == 0) {
-  //     const gpuBuf = gl.createBuffer()!;
-  //     self.async.queue.push(gpuBuf);
-  //     self.async.all.add(gpuBuf);
-  //   }
-  //   const gpuBuf = self.async.queue.shift()!;
-  //   if (self.async.queue.length > 6) {
-  //     _deleteAsyncBuf(self.async.queue.pop()!);
-  //   }
-  //   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
-  //   if (!gpuBuf.length || gpuBuf.length < n) {
-  //     const byteN = n * self.formatInfo.CpuArray.BYTES_PER_ELEMENT;
-  //     gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
-  //     gpuBuf.length = n;
-  //     console.debug(`created/resized async gpu buffer "${self._tag}":`, gpuBuf);
-  //   }
-  //   return gpuBuf;
-  // }
+  function _bindAsyncBuffer(n: number): GpuBuf {
+    if (!self.async) {
+      self.async = { all: new Set(), queue: [] };
+    }
+    if (self.async.queue.length == 0) {
+      const gpuBuf = gl.createBuffer()!;
+      self.async.queue.push(gpuBuf);
+      self.async.all.add(gpuBuf);
+    }
+    const gpuBuf = self.async.queue.shift()!;
+    if (self.async.queue.length > 6) {
+      _deleteAsyncBuf(self.async.queue.pop()!);
+    }
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
+    if (!gpuBuf.length || gpuBuf.length < n) {
+      const byteN = n * self.formatInfo.CpuArray.BYTES_PER_ELEMENT;
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
+      gpuBuf.length = n;
+      console.debug(`created/resized async gpu buffer "${self._tag}":`, gpuBuf);
+    }
+    return gpuBuf;
+  }
 
   function _deleteAsyncBuf(gpuBuf: GpuBuf) {
     delete gpuBuf.length;
@@ -668,57 +668,57 @@ function textureTarget(params: TargetParams) {
   }
 
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
-  // function read(
-  //   callback: (target: ArrayBufferView) => void,
-  //   optBox?: [number, number, number, number],
-  //   optTarget?: ArrayBufferView,
-  // ) {
-  //   const { box, n } = _getBox(optBox);
-  //   const gpuBuf = _bindAsyncBuffer(n);
-  //   _readPixels(box, null);
-  //   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-  //   const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
-  //   gl.flush();
-  //   _asyncFetch(gpuBuf, sync, callback, optTarget);
-  // }
+  function read(
+    callback: (target: ArrayBufferView) => void,
+    optBox?: [number, number, number, number],
+    optTarget?: ArrayBufferView,
+  ) {
+    const { box, n } = _getBox(optBox);
+    const gpuBuf = _bindAsyncBuffer(n);
+    _readPixels(box, null);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
+    gl.flush();
+    _asyncFetch(gpuBuf, sync, callback, optTarget);
+  }
 
-  // function _asyncFetch(
-  //   gpuBuf: GpuBuf,
-  //   sync: WebGLSync,
-  //   callback: (target: ArrayBufferView) => void,
-  //   optTarget?: ArrayBufferView,
-  // ) {
-  //   if (!gpuBuf.length) {
-  //     // check that gpu buffer is not deleted
-  //     gl.deleteSync(sync);
-  //     return;
-  //   }
-  //   const res = gl.clientWaitSync(sync, 0, 0);
-  //   if (res === gl.TIMEOUT_EXPIRED) {
-  //     setTimeout(
-  //       () => _asyncFetch(gpuBuf, sync, callback, optTarget),
-  //       1 /*ms*/,
-  //     );
-  //     return;
-  //   }
-  //   if (res === gl.WAIT_FAILED) {
-  //     console.debug(`async read of ${self._tag} failed`);
-  //   } else {
-  //     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
-  //     const target = optTarget || _getCPUBuf(gpuBuf.length);
-  //     gl.getBufferSubData(
-  //       gl.PIXEL_PACK_BUFFER,
-  //       0 /*srcOffset*/,
-  //       target,
-  //       0 /*dstOffset*/,
-  //       gpuBuf.length /*length*/,
-  //     );
-  //     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-  //     callback(target);
-  //   }
-  //   gl.deleteSync(sync);
-  //   self.async!.queue.push(gpuBuf);
-  // }
+  function _asyncFetch(
+    gpuBuf: GpuBuf,
+    sync: WebGLSync,
+    callback: (target: ArrayBufferView) => void,
+    optTarget?: ArrayBufferView,
+  ) {
+    if (!gpuBuf.length) {
+      // check that gpu buffer is not deleted
+      gl.deleteSync(sync);
+      return;
+    }
+    const res = gl.clientWaitSync(sync, 0, 0);
+    if (res === gl.TIMEOUT_EXPIRED) {
+      setTimeout(
+        () => _asyncFetch(gpuBuf, sync, callback, optTarget),
+        1 /*ms*/,
+      );
+      return;
+    }
+    if (res === gl.WAIT_FAILED) {
+      console.debug(`async read of ${self._tag} failed`);
+    } else {
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
+      const target = optTarget || _getCPUBuf(gpuBuf.length);
+      gl.getBufferSubData(
+        gl.PIXEL_PACK_BUFFER,
+        0 /*srcOffset*/,
+        target,
+        0 /*dstOffset*/,
+        gpuBuf.length /*length*/,
+      );
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      callback(target);
+    }
+    gl.deleteSync(sync);
+    self.async!.queue.push(gpuBuf);
+  }
 
   function free() {
     if (self.depth) self.depth.free();
@@ -764,6 +764,8 @@ function textureTarget(params: TargetParams) {
     update,
     attach,
     bindTarget,
+    readSync,
+    read,
     free,
   });
   update(size, data);
