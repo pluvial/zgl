@@ -279,7 +279,8 @@ function guessUniforms(params: Record<string, any>) {
   for (const name in params) {
     const v = params[name];
     let s = null;
-    if (v instanceof TextureSampler) {
+    // TODO: better type detection
+    if (typeof v === 'object') {
       const [type, D] = v.layern ? ['sampler2DArray', '3'] : ['sampler2D', '2'];
       const lookupMacro = v.layern
         ? `#define ${name}(p,l) (_sample(${name}, (p), (l)))`
@@ -363,108 +364,123 @@ ${glsl_main_frag}`,
 export type Filter = 'linear' | 'nearest' | 'miplinear';
 export type Wrap = 'edge' | 'repeat' | 'mirror';
 
-type TextureSamplerCore = {
-  handle: WebGLTexture & { hasMipmap?: boolean };
-  gltarget: number;
-  layern: number | null;
-  filter: Filter;
-  wrap: Wrap;
+type TextureSamplerMethods = {
+  get linear(): TextureSampler;
+  get nearest(): TextureSampler;
+  get miplinear(): TextureSampler;
+  get edge(): TextureSampler;
+  get repeat(): TextureSampler;
+  get mirror(): TextureSampler;
+  get _sampler(): WebGLSampler;
+  bindSampler(unit: number): void;
 };
+
+type TextureSamplerState = {
+  handle?: WebGLTexture & { hasMipmap?: boolean };
+  gltarget?: number;
+  layern?: number | null;
+  filter?: Filter;
+  wrap?: Wrap;
+};
+
+type TextureSampler = TextureSamplerMethods & TextureSamplerState;
 
 let _samplers: Record<string, WebGLSampler> | undefined;
 
-class TextureSampler implements TextureSamplerCore {
-  // @ts-ignore
-  handle: WebGLTexture & { hasMipmap?: boolean };
-  // @ts-ignore
-  gltarget: number;
-  // @ts-ignore
-  layern: number | null;
-  // filter: 'linear' | 'nearest' | 'miplinear';
-  // @ts-ignore
-  filter: Filter;
-  // @ts-ignore
-  wrap: Wrap;
-  fork(updates: Partial<TextureSamplerCore>) {
-    const { handle, gltarget, layern, filter, wrap } = {
-      ...this,
-      ...updates,
-    };
-    return updateObject(new TextureSampler(), {
-      handle,
-      gltarget,
-      layern,
-      filter,
-      wrap,
+function textureSampler(): TextureSampler {
+  const fork = (updates: Partial<TextureSamplerState>): TextureSampler =>
+    Object.assign(textureSampler(), {
+      handle: updates.handle ?? self.handle,
+      gltarget: updates.gltarget ?? self.gltarget,
+      layern: updates.layern ?? self.layern,
+      filter: updates.filter ?? self.filter,
+      wrap: updates.wrap ?? self.wrap,
     });
-  }
-  get linear() {
-    return this.fork({ filter: 'linear' });
-  }
-  get nearest() {
-    return this.fork({ filter: 'nearest' });
-  }
-  get miplinear() {
-    return this.fork({ filter: 'miplinear' });
-  }
-  get edge() {
-    return this.fork({ wrap: 'edge' });
-  }
-  get repeat() {
-    return this.fork({ wrap: 'repeat' });
-  }
-  get mirror() {
-    return this.fork({ wrap: 'mirror' });
-  }
 
-  get _sampler() {
-    const { filter, wrap } = this;
-    if (!_samplers) {
-      _samplers = {};
-    }
-    const id = `${filter}:${wrap}`;
-    if (!(id in _samplers)) {
-      const glfilter = {
-        nearest: gl.NEAREST,
-        linear: gl.LINEAR,
-        miplinear: gl.LINEAR_MIPMAP_LINEAR,
-      }[filter];
-      const glwrap = {
-        repeat: gl.REPEAT,
-        edge: gl.CLAMP_TO_EDGE,
-        mirror: gl.MIRRORED_REPEAT,
-      }[wrap];
-      const sampler = gl.createSampler()!;
-      type PName =
-        | 'COMPARE_FUNC'
-        | 'COMPARE_MODE'
-        | 'MAG_FILTER'
-        | 'MAX_LOD'
-        | 'MIN_FILTER'
-        | 'MIN_LOD'
-        | 'WRAP_R'
-        | 'WRAP_S'
-        | 'WRAP_T';
-      const setf = (k: PName, v: number) =>
-        gl.samplerParameteri(sampler, gl[`TEXTURE_${k}`], v);
-      setf('MIN_FILTER', glfilter);
-      setf('MAG_FILTER', filter == 'miplinear' ? gl.LINEAR : glfilter);
-      setf('WRAP_S', glwrap);
-      setf('WRAP_T', glwrap);
-      _samplers[id] = sampler;
-    }
-    return _samplers[id];
-  }
-  bindSampler(unit: number) {
-    // assume unit is already active
-    const { gltarget, handle } = this;
-    gl.bindTexture(gltarget, handle);
-    if (this.filter == 'miplinear' && !handle.hasMipmap) {
-      gl.generateMipmap(gltarget);
-      handle.hasMipmap = true;
-    }
-    gl.bindSampler(unit, this._sampler);
-  }
+  const self: TextureSampler = {
+    // injected by child TextureTarget:
+    // handle: WebGLTexture & { hasMipmap?: boolean };
+    // gltarget: number;
+    // layern: number | null;
+    // filter: Filter;
+    // wrap: Wrap;
+
+    get linear() {
+      return fork({ filter: 'linear' });
+    },
+
+    get nearest() {
+      return fork({ filter: 'nearest' });
+    },
+
+    get miplinear() {
+      return fork({ filter: 'miplinear' });
+    },
+
+    get edge() {
+      return fork({ wrap: 'edge' });
+    },
+
+    get repeat() {
+      return fork({ wrap: 'repeat' });
+    },
+
+    get mirror() {
+      return fork({ wrap: 'mirror' });
+    },
+
+    get _sampler() {
+      const { filter, wrap } = self;
+      if (!_samplers) {
+        _samplers = {};
+      }
+      const id = `${filter}:${wrap}`;
+      if (!(id in _samplers)) {
+        const glfilter = {
+          nearest: gl.NEAREST,
+          linear: gl.LINEAR,
+          miplinear: gl.LINEAR_MIPMAP_LINEAR,
+        }[filter!];
+        const glwrap = {
+          repeat: gl.REPEAT,
+          edge: gl.CLAMP_TO_EDGE,
+          mirror: gl.MIRRORED_REPEAT,
+        }[wrap!];
+        const sampler = gl.createSampler()!;
+        type PName =
+          | 'COMPARE_FUNC'
+          | 'COMPARE_MODE'
+          | 'MAG_FILTER'
+          | 'MAX_LOD'
+          | 'MIN_FILTER'
+          | 'MIN_LOD'
+          | 'WRAP_R'
+          | 'WRAP_S'
+          | 'WRAP_T';
+        const setf = (k: PName, v: number) =>
+          gl.samplerParameteri(sampler, gl[`TEXTURE_${k}`], v);
+        setf('MIN_FILTER', glfilter);
+        setf('MAG_FILTER', filter == 'miplinear' ? gl.LINEAR : glfilter);
+        setf('WRAP_S', glwrap);
+        setf('WRAP_T', glwrap);
+        _samplers[id] = sampler;
+      }
+      return _samplers[id];
+    },
+
+    bindSampler(unit: number) {
+      // assume unit is already active
+      const { gltarget, handle } = self;
+      gl.bindTexture(gltarget!, handle!);
+      if (self.filter == 'miplinear' && !handle!.hasMipmap) {
+        gl.generateMipmap(gltarget!);
+        handle!.hasMipmap = true;
+      }
+      gl.bindSampler(unit, self._sampler);
+    },
+  };
+
+  return self;
 }
 
 type GpuBuf = WebGLBuffer & { length?: number };
@@ -528,10 +544,10 @@ function textureTarget(params: TargetParams) {
     const { handle, gltarget, layern } = self;
     const { internalFormat, glformat, type } = self.formatInfo;
     const [w, h] = size;
-    gl.bindTexture(gltarget, handle);
+    gl.bindTexture(gltarget!, handle!);
     if (!layern) {
       gl.texImage2D(
-        gltarget,
+        gltarget!,
         0 /*mip level*/,
         internalFormat,
         w,
@@ -543,7 +559,7 @@ function textureTarget(params: TargetParams) {
       );
     } else {
       gl.texImage3D(
-        gltarget,
+        gltarget!,
         0 /*mip level*/,
         internalFormat,
         w,
@@ -555,7 +571,7 @@ function textureTarget(params: TargetParams) {
         data /*data*/,
       );
     }
-    gl.bindTexture(gltarget, null);
+    gl.bindTexture(gltarget!, null);
     self.size = size;
     if (self.depth) {
       self.depth.update(size, data);
@@ -570,7 +586,7 @@ function textureTarget(params: TargetParams) {
         gl.FRAMEBUFFER,
         attachment,
         gl.TEXTURE_2D,
-        self.handle,
+        self.handle!,
         0 /*level*/,
       );
     } else {
@@ -581,7 +597,7 @@ function textureTarget(params: TargetParams) {
         gl.framebufferTextureLayer(
           gl.FRAMEBUFFER,
           attachment,
-          self.handle,
+          self.handle!,
           0 /*level*/,
           i,
         );
@@ -600,7 +616,7 @@ function textureTarget(params: TargetParams) {
       if (self.depth) self.depth.attach();
     }
     if (!readonly) {
-      self.handle.hasMipmap = false;
+      self.handle!.hasMipmap = false;
     }
     return self.size;
   }
@@ -724,10 +740,11 @@ function textureTarget(params: TargetParams) {
     if (self.depth) self.depth.free();
     if (self.fbo) gl.deleteFramebuffer(self.fbo);
     if (self.async) self.async.all.forEach(buf => _deleteAsyncBuf(buf));
-    gl.deleteTexture(self.handle);
+    gl.deleteTexture(self.handle!);
   }
 
-  const sampler = new TextureSampler();
+  const sampler = textureSampler();
+
   let {
     size,
     tag,
