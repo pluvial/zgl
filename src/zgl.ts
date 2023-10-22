@@ -484,29 +484,29 @@ type TextureTargetMethods = {
   update(size: [number, number], data: ArrayBufferView | null): void;
   attach(): void;
   bindTarget(readonly?: boolean): [number, number];
-  _getBox(box?: [number, number, number, number]): {
-    box: [number, number, number, number];
-    n: number;
-  };
-  _getCPUBuf(n: number): CpuArray;
-  _readPixels(
-    box: [number, number, number, number],
-    targetBuf: ArrayBufferView | null,
-  ): void;
-  readSync(...optBox: [number, number, number, number]): CpuArray;
-  _bindAsyncBuffer(n: number): GpuBuf;
-  _deleteAsyncBuf(gpuBuf: GpuBuf): void;
-  read(
-    callback: (target: ArrayBufferView) => void,
-    optBox?: [number, number, number, number],
-    optTarget?: ArrayBufferView,
-  ): void;
-  _asyncFetch(
-    gpuBuf: GpuBuf,
-    sync: WebGLSync,
-    callback: (target: ArrayBufferView) => void,
-    optTarget?: ArrayBufferView,
-  ): void;
+  // _getBox(box?: [number, number, number, number]): {
+  //   box: [number, number, number, number];
+  //   n: number;
+  // };
+  // _getCPUBuf(n: number): CpuArray;
+  // _readPixels(
+  //   box: [number, number, number, number],
+  //   targetBuf: ArrayBufferView | null,
+  // ): void;
+  // readSync(...optBox: [number, number, number, number]): CpuArray;
+  // _bindAsyncBuffer(n: number): GpuBuf;
+  // _deleteAsyncBuf(gpuBuf: GpuBuf): void;
+  // read(
+  //   callback: (target: ArrayBufferView) => void,
+  //   optBox?: [number, number, number, number],
+  //   optTarget?: ArrayBufferView,
+  // ): void;
+  // _asyncFetch(
+  //   gpuBuf: GpuBuf,
+  //   sync: WebGLSync,
+  //   callback: (target: ArrayBufferView) => void,
+  //   optTarget?: ArrayBufferView,
+  // ): void;
   free(): void;
 };
 
@@ -524,202 +524,209 @@ type TextureTargetState = {
 type TextureTarget = TextureSampler & TextureTargetMethods & TextureTargetState;
 
 function textureTarget(params: TargetParams) {
-  const methods: TextureTargetMethods = {
-    update(size: [number, number], data: ArrayBufferView | null) {
-      const { handle, gltarget, layern } = self;
-      const { internalFormat, glformat, type } = self.formatInfo;
-      const [w, h] = size;
-      gl.bindTexture(gltarget, handle);
-      if (!layern) {
-        gl.texImage2D(
-          gltarget,
-          0 /*mip level*/,
-          internalFormat,
-          w,
-          h,
-          0 /*border*/,
-          glformat,
-          type,
-          data /*data*/,
-        );
-      } else {
-        gl.texImage3D(
-          gltarget,
-          0 /*mip level*/,
-          internalFormat,
-          w,
-          h,
-          layern,
-          0 /*border*/,
-          glformat,
-          type,
-          data /*data*/,
-        );
-      }
-      gl.bindTexture(gltarget, null);
-      self.size = size;
-      if (self.depth) {
-        self.depth.update(size, data);
-      }
-    },
-    attach() {
-      if (!self.layern) {
-        const attachment =
-          self.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
-        gl.framebufferTexture2D(
+  function update(size: [number, number], data: ArrayBufferView | null) {
+    const { handle, gltarget, layern } = self;
+    const { internalFormat, glformat, type } = self.formatInfo;
+    const [w, h] = size;
+    gl.bindTexture(gltarget, handle);
+    if (!layern) {
+      gl.texImage2D(
+        gltarget,
+        0 /*mip level*/,
+        internalFormat,
+        w,
+        h,
+        0 /*border*/,
+        glformat,
+        type,
+        data /*data*/,
+      );
+    } else {
+      gl.texImage3D(
+        gltarget,
+        0 /*mip level*/,
+        internalFormat,
+        w,
+        h,
+        layern,
+        0 /*border*/,
+        glformat,
+        type,
+        data /*data*/,
+      );
+    }
+    gl.bindTexture(gltarget, null);
+    self.size = size;
+    if (self.depth) {
+      self.depth.update(size, data);
+    }
+  }
+
+  function attach() {
+    if (!self.layern) {
+      const attachment =
+        self.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        attachment,
+        gl.TEXTURE_2D,
+        self.handle,
+        0 /*level*/,
+      );
+    } else {
+      const drawBuffers = [];
+      for (let i = 0; i < self.layern; ++i) {
+        const attachment = gl.COLOR_ATTACHMENT0 + i;
+        drawBuffers.push(attachment);
+        gl.framebufferTextureLayer(
           gl.FRAMEBUFFER,
           attachment,
-          gl.TEXTURE_2D,
           self.handle,
           0 /*level*/,
-        );
-      } else {
-        const drawBuffers = [];
-        for (let i = 0; i < self.layern; ++i) {
-          const attachment = gl.COLOR_ATTACHMENT0 + i;
-          drawBuffers.push(attachment);
-          gl.framebufferTextureLayer(
-            gl.FRAMEBUFFER,
-            attachment,
-            self.handle,
-            0 /*level*/,
-            i,
-          );
-        }
-        gl.drawBuffers(drawBuffers);
-      }
-    },
-    bindTarget(readonly = false) {
-      if (self.fbo) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, self.fbo);
-      } else {
-        self.fbo = gl.createFramebuffer()!;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, self.fbo);
-        self.attach();
-        if (self.depth) self.depth.attach();
-      }
-      if (!readonly) {
-        self.handle.hasMipmap = false;
-      }
-      return self.size;
-    },
-    _getBox(box?: [number, number, number, number]): {
-      box: [number, number, number, number];
-      n: number;
-    } {
-      box = box && box.length ? box : [0, 0, ...self.size];
-      const [, , w, h] = box,
-        n = w * h * self.formatInfo.chn;
-      return { box, n };
-    },
-    _getCPUBuf(n: number): CpuArray {
-      if (!self.cpu || self.cpu.length < n) {
-        self.cpu = new self.formatInfo.CpuArray(n);
-      }
-      return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
-    },
-    _readPixels(
-      box: [number, number, number, number],
-      targetBuf: ArrayBufferView | null,
-    ) {
-      const { glformat, type } = self.formatInfo;
-      self.bindTarget(/*readonly*/ true);
-      gl.readPixels(...box, glformat, type, targetBuf);
-    },
-    readSync(...optBox: [number, number, number, number]): CpuArray {
-      const { box, n } = self._getBox(optBox);
-      const buf = self._getCPUBuf(n);
-      self._readPixels(box, buf);
-      return buf;
-    },
-    _bindAsyncBuffer(n: number): GpuBuf {
-      if (!self.async) {
-        self.async = { all: new Set(), queue: [] };
-      }
-      if (self.async.queue.length == 0) {
-        const gpuBuf = gl.createBuffer()!;
-        self.async.queue.push(gpuBuf);
-        self.async.all.add(gpuBuf);
-      }
-      const gpuBuf = self.async.queue.shift()!;
-      if (self.async.queue.length > 6) {
-        self._deleteAsyncBuf(self.async.queue.pop()!);
-      }
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
-      if (!gpuBuf.length || gpuBuf.length < n) {
-        const byteN = n * self.formatInfo.CpuArray.BYTES_PER_ELEMENT;
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
-        gpuBuf.length = n;
-        console.debug(
-          `created/resized async gpu buffer "${self._tag}":`,
-          gpuBuf,
+          i,
         );
       }
-      return gpuBuf;
-    },
-    _deleteAsyncBuf(gpuBuf: GpuBuf) {
-      delete gpuBuf.length;
-      gl.deleteBuffer(gpuBuf);
-      self.async!.all.delete(gpuBuf);
-    },
-    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
-    read(
-      callback: (target: ArrayBufferView) => void,
-      optBox?: [number, number, number, number],
-      optTarget?: ArrayBufferView,
-    ) {
-      const { box, n } = self._getBox(optBox);
-      const gpuBuf = self._bindAsyncBuffer(n);
-      self._readPixels(box, null);
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-      const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
-      gl.flush();
-      self._asyncFetch(gpuBuf, sync, callback, optTarget);
-    },
-    _asyncFetch(
-      gpuBuf: GpuBuf,
-      sync: WebGLSync,
-      callback: (target: ArrayBufferView) => void,
-      optTarget?: ArrayBufferView,
-    ) {
-      if (!gpuBuf.length) {
-        // check that gpu buffer is not deleted
-        gl.deleteSync(sync);
-        return;
-      }
-      const res = gl.clientWaitSync(sync, 0, 0);
-      if (res === gl.TIMEOUT_EXPIRED) {
-        setTimeout(
-          () => self._asyncFetch(gpuBuf, sync, callback, optTarget),
-          1 /*ms*/,
-        );
-        return;
-      }
-      if (res === gl.WAIT_FAILED) {
-        console.debug(`async read of ${self._tag} failed`);
-      } else {
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
-        const target = optTarget || self._getCPUBuf(gpuBuf.length);
-        gl.getBufferSubData(
-          gl.PIXEL_PACK_BUFFER,
-          0 /*srcOffset*/,
-          target,
-          0 /*dstOffset*/,
-          gpuBuf.length /*length*/,
-        );
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-        callback(target);
-      }
-      gl.deleteSync(sync);
-      self.async!.queue.push(gpuBuf);
-    },
-    free() {
-      if (self.depth) self.depth.free();
-      if (self.fbo) gl.deleteFramebuffer(self.fbo);
-      if (self.async) self.async.all.forEach(buf => self._deleteAsyncBuf(buf));
-      gl.deleteTexture(self.handle);
-    },
-  };
+      gl.drawBuffers(drawBuffers);
+    }
+  }
+
+  function bindTarget(readonly = false) {
+    if (self.fbo) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, self.fbo);
+    } else {
+      self.fbo = gl.createFramebuffer()!;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, self.fbo);
+      attach();
+      if (self.depth) self.depth.attach();
+    }
+    if (!readonly) {
+      self.handle.hasMipmap = false;
+    }
+    return self.size;
+  }
+
+  // function _getBox(box?: [number, number, number, number]): {
+  //   box: [number, number, number, number];
+  //   n: number;
+  // } {
+  //   box = box && box.length ? box : [0, 0, ...self.size];
+  //   const [, , w, h] = box,
+  //     n = w * h * self.formatInfo.chn;
+  //   return { box, n };
+  // }
+
+  // function _getCPUBuf(n: number): CpuArray {
+  //   if (!self.cpu || self.cpu.length < n) {
+  //     self.cpu = new self.formatInfo.CpuArray(n);
+  //   }
+  //   return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
+  // }
+
+  // function _readPixels(
+  //   box: [number, number, number, number],
+  //   targetBuf: ArrayBufferView | null,
+  // ) {
+  //   const { glformat, type } = self.formatInfo;
+  //   bindTarget(/*readonly*/ true);
+  //   gl.readPixels(...box, glformat, type, targetBuf);
+  // }
+
+  // function readSync(...optBox: [number, number, number, number]): CpuArray {
+  //   const { box, n } = _getBox(optBox);
+  //   const buf = _getCPUBuf(n);
+  //   _readPixels(box, buf);
+  //   return buf;
+  // }
+
+  // function _bindAsyncBuffer(n: number): GpuBuf {
+  //   if (!self.async) {
+  //     self.async = { all: new Set(), queue: [] };
+  //   }
+  //   if (self.async.queue.length == 0) {
+  //     const gpuBuf = gl.createBuffer()!;
+  //     self.async.queue.push(gpuBuf);
+  //     self.async.all.add(gpuBuf);
+  //   }
+  //   const gpuBuf = self.async.queue.shift()!;
+  //   if (self.async.queue.length > 6) {
+  //     _deleteAsyncBuf(self.async.queue.pop()!);
+  //   }
+  //   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
+  //   if (!gpuBuf.length || gpuBuf.length < n) {
+  //     const byteN = n * self.formatInfo.CpuArray.BYTES_PER_ELEMENT;
+  //     gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
+  //     gpuBuf.length = n;
+  //     console.debug(`created/resized async gpu buffer "${self._tag}":`, gpuBuf);
+  //   }
+  //   return gpuBuf;
+  // }
+
+  function _deleteAsyncBuf(gpuBuf: GpuBuf) {
+    delete gpuBuf.length;
+    gl.deleteBuffer(gpuBuf);
+    self.async!.all.delete(gpuBuf);
+  }
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
+  // function read(
+  //   callback: (target: ArrayBufferView) => void,
+  //   optBox?: [number, number, number, number],
+  //   optTarget?: ArrayBufferView,
+  // ) {
+  //   const { box, n } = _getBox(optBox);
+  //   const gpuBuf = _bindAsyncBuffer(n);
+  //   _readPixels(box, null);
+  //   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+  //   const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
+  //   gl.flush();
+  //   _asyncFetch(gpuBuf, sync, callback, optTarget);
+  // }
+
+  // function _asyncFetch(
+  //   gpuBuf: GpuBuf,
+  //   sync: WebGLSync,
+  //   callback: (target: ArrayBufferView) => void,
+  //   optTarget?: ArrayBufferView,
+  // ) {
+  //   if (!gpuBuf.length) {
+  //     // check that gpu buffer is not deleted
+  //     gl.deleteSync(sync);
+  //     return;
+  //   }
+  //   const res = gl.clientWaitSync(sync, 0, 0);
+  //   if (res === gl.TIMEOUT_EXPIRED) {
+  //     setTimeout(
+  //       () => _asyncFetch(gpuBuf, sync, callback, optTarget),
+  //       1 /*ms*/,
+  //     );
+  //     return;
+  //   }
+  //   if (res === gl.WAIT_FAILED) {
+  //     console.debug(`async read of ${self._tag} failed`);
+  //   } else {
+  //     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
+  //     const target = optTarget || _getCPUBuf(gpuBuf.length);
+  //     gl.getBufferSubData(
+  //       gl.PIXEL_PACK_BUFFER,
+  //       0 /*srcOffset*/,
+  //       target,
+  //       0 /*dstOffset*/,
+  //       gpuBuf.length /*length*/,
+  //     );
+  //     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+  //     callback(target);
+  //   }
+  //   gl.deleteSync(sync);
+  //   self.async!.queue.push(gpuBuf);
+  // }
+
+  function free() {
+    if (self.depth) self.depth.free();
+    if (self.fbo) gl.deleteFramebuffer(self.fbo);
+    if (self.async) self.async.all.forEach(buf => _deleteAsyncBuf(buf));
+    gl.deleteTexture(self.handle);
+  }
+
   const sampler = new TextureSampler();
   let {
     size,
@@ -742,7 +749,7 @@ function textureTarget(params: TargetParams) {
       depth: null,
     });
   }
-  const self: TextureTarget = Object.assign(sampler, methods, {
+  const self: TextureTarget = Object.assign(sampler, {
     handle: gl.createTexture()!,
     filter: format == 'depth' ? 'nearest' : filter,
     gltarget: layern ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D,
@@ -752,10 +759,14 @@ function textureTarget(params: TargetParams) {
     layern,
     wrap,
     depth,
-    // redundant, will be set in self.update()
+    // redundant, will be set in update()
     size,
+    update,
+    attach,
+    bindTarget,
+    free,
   });
-  self.update(size, data);
+  update(size, data);
   return self;
 }
 
