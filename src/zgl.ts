@@ -104,7 +104,7 @@ type CpuArrayConstructor =
   | Float32ArrayConstructor
   | Uint32ArrayConstructor;
 
-type TextureFormat = {
+type TextureFormatInfo = {
   internalFormat: GL[
     | 'R8'
     | 'RGBA8'
@@ -120,7 +120,7 @@ type TextureFormat = {
   chn: 1 | 2 | 4;
 };
 
-// const TextureFormats = {} as Record<string, TextureFormat>;
+// const TextureFormats = {} as Record<string, TextureFormatInfo>;
 // for (const [name, internalFormat, glformat, type, CpuArray, chn] of [
 //   ['r8', GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
 //   ['rgba8', GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
@@ -140,7 +140,7 @@ type TextureFormat = {
 // ] as const)
 //   TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
 
-type TextureFormatKey =
+type TextureFormat =
   | 'r8'
   | 'rgba8'
   | 'r16f'
@@ -198,7 +198,7 @@ const TextureFormats = {
     type: 5125,
     chn: 1,
   },
-} as Record<TextureFormatKey, TextureFormat>;
+} as Record<TextureFormat, TextureFormatInfo>;
 
 function memoize<T>(f: (k: string) => T) {
   const cache: Record<string, T> = {};
@@ -553,7 +553,7 @@ type GpuBuf = WebGLBuffer & { length?: number };
 type TargetParams = {
   size: [number, number];
   tag: string;
-  format?: TextureFormatKey;
+  format?: TextureFormat;
   filter?: Filter;
   wrap?: Wrap;
   layern?: number | null;
@@ -595,7 +595,7 @@ type TextureTargetState = {
   size: [number, number];
   _tag: string;
   format: string;
-  formatInfo: TextureFormat;
+  formatInfo: TextureFormatInfo;
   depth: TextureTarget | null;
   fbo?: WebGLFramebuffer;
   cpu?: CpuArray;
@@ -822,11 +822,11 @@ function textureTarget(params: TargetParams) {
   } = params;
   if (!depth && format.includes('+')) {
     const [mainFormat, depthFormat] = format.split('+');
-    format = mainFormat as TextureFormatKey;
+    format = mainFormat as TextureFormat;
     depth = textureTarget({
       ...params,
       tag: tag + '_depth',
-      format: depthFormat as TextureFormatKey,
+      format: depthFormat as TextureFormat,
       layern: null,
       depth: null,
     });
@@ -958,7 +958,7 @@ const createTarget = (
 export type Spec = {
   size: [number, number];
   scale?: number;
-  format?: TextureFormatKey;
+  format?: TextureFormat;
   depth?: TextureTarget | null;
   layern?: number | null;
   data: ArrayBufferView | null;
