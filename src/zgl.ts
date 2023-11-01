@@ -345,7 +345,8 @@ function guessUniforms(params: Record<string, any>): string {
     const v = params[name];
     let s = null;
     // TODO: better type detection
-    if (typeof v === 'object') {
+    // (v instanceof TextureSampler) {
+    if (typeof v === 'object' && !Array.isArray(v)) {
       const [type, D] = v.layern ? ['sampler2DArray', '3'] : ['sampler2D', '2'];
       const lookupMacro = v.layern
         ? `#define ${name}(p,l) (_sample(${name}, (p), (l)))`
@@ -1146,6 +1147,7 @@ export const canvas = c as HTMLCanvasElement;
 export const gl: GL = canvas.getContext('webgl2', {
   alpha: false,
   antialias: true,
+  // xrCompatible: true,
 })!;
 gl.getExtension('EXT_color_buffer_float');
 gl.getExtension('OES_texture_float_linear');

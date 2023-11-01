@@ -8,6 +8,12 @@ devDependencies:
   '@sergeymakinen/vite-plugin-html-minimize':
     specifier: ^1.0.6
     version: 1.0.6(vite@4.4.11)
+  '@types/webxr':
+    specifier: ^0.5.7
+    version: 0.5.7
+  lil-gui:
+    specifier: ^0.19.0
+    version: 0.19.0
   terser:
     specifier: ^5.21.0
     version: 5.21.0
@@ -295,6 +301,10 @@ packages:
     resolution: {integrity: sha512-h4lTMgMJctJybDp8CQrxTUiiYmedihHWkjnF/8Pxseu2S6Nlfcy8kwboQ8yejh456rP2yWoEVm1sS/FVsfM48w==}
     dev: true
 
+  /@types/webxr@0.5.7:
+    resolution: {integrity: sha512-Rcgs5c2eNFnHp53YOjgtKfl/zWX1Y+uFGUwlSXrWcZWu3yhANRezmph4MninmqybUYT6g9ZE0aQ9QIdPkLR3Kg==}
+    dev: true
+
   /acorn@8.10.0:
     resolution: {integrity: sha512-F0SAmZ8iUtS//m8DmCTA0jlh6TDKkHQyK6xc6V4KDTyZKA9dnvX9/3sRTVQrWm79glUAZbnmmNcdYwUIHWVybw==}
     engines: {node: '>=0.4.0'}
@@ -413,6 +423,10 @@ packages:
   /is-number@7.0.0:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
     engines: {node: '>=0.12.0'}
+    dev: true
+
+  /lil-gui@0.19.0:
+    resolution: {integrity: sha512-02/Z7rPng3GXWFwkQVj1hQaJYo2fIEYctqe0ima5uI/N2HEagB9ZGCQKkVWr3UuKfTr0arto3Q9prTB8sxtJJw==}
     dev: true
 
   /lower-case@2.0.2:
