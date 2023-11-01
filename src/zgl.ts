@@ -36,34 +36,66 @@ import glsl_main_frag from './main.frag';
 import glsl_main_vert from './main.vert';
 import glsl_template from './template.glsl';
 
-export const GL = globalThis.WebGL2RenderingContext;
+export const GL = WebGL2RenderingContext;
 export type GL = WebGL2RenderingContext;
 
-type S =
-  | 'BOOL'
-  | 'BOOL_VEC2'
-  | 'BOOL_VEC3'
-  | 'BOOL_VEC4'
-  | 'INT'
-  | 'INT_VEC2'
-  | 'INT_VEC3'
-  | 'INT_VEC4'
-  | 'FLOAT'
-  | 'FLOAT_VEC2'
-  | 'FLOAT_VEC3'
-  | 'FLOAT_VEC4'
-  | 'FLOAT_MAT2'
-  | 'FLOAT_MAT3'
-  | 'FLOAT_MAT4';
+// const Type2Setter = {} as Record<GL[S], string>;
+// for (const t of ['FLOAT', 'INT', 'BOOL'] as const) {
+//   const suf = t == 'FLOAT' ? 'f' : 'i';
+//   Type2Setter[GL[t]] = 'uniform1' + suf;
+//   for (const i of [2, 3, 4] as const) {
+//     Type2Setter[GL[`${t}_VEC${i}`]] = `uniform${i}${suf}v`;
+//     if (suf == 'f') {
+//       Type2Setter[GL[`${t}_MAT${i}` as S]] = `uniformMatrix${i}fv`;
+//     }
+//   }
+// }
+const Type2Setter = {
+  5124: 'uniform1i',
+  5126: 'uniform1f',
+  35664: 'uniform2fv',
+  35665: 'uniform3fv',
+  35666: 'uniform4fv',
+  35667: 'uniform2iv',
+  35668: 'uniform3iv',
+  35669: 'uniform4iv',
+  35670: 'uniform1i',
+  35671: 'uniform2iv',
+  35672: 'uniform3iv',
+  35673: 'uniform4iv',
+  35674: 'uniformMatrix2fv',
+  35675: 'uniformMatrix3fv',
+  35676: 'uniformMatrix4fv',
+};
 
-const Type2Setter = {} as Record<GL[S], string>;
+// type S =
+//   | 'BOOL'
+//   | 'BOOL_VEC2'
+//   | 'BOOL_VEC3'
+//   | 'BOOL_VEC4'
+//   | 'INT'
+//   | 'INT_VEC2'
+//   | 'INT_VEC3'
+//   | 'INT_VEC4'
+//   | 'FLOAT'
+//   | 'FLOAT_VEC2'
+//   | 'FLOAT_VEC3'
+//   | 'FLOAT_VEC4'
+//   | 'FLOAT_MAT2'
+//   | 'FLOAT_MAT3'
+//   | 'FLOAT_MAT4';
+
+// const UniformType2TexTarget = {
+//   [GL.SAMPLER_2D]: GL.TEXTURE_2D,
+//   [GL.SAMPLER_2D_ARRAY]: GL.TEXTURE_2D_ARRAY,
+// } as Record<
+//   GL['SAMPLER_2D' | 'SAMPLER_2D_ARRAY'],
+//   GL['TEXTURE_2D' | 'TEXTURE_2D_ARRAY']
+// >;
 const UniformType2TexTarget = {
-  [GL.SAMPLER_2D]: GL.TEXTURE_2D,
-  [GL.SAMPLER_2D_ARRAY]: GL.TEXTURE_2D_ARRAY,
-} as Record<
-  GL['SAMPLER_2D' | 'SAMPLER_2D_ARRAY'],
-  GL['TEXTURE_2D' | 'TEXTURE_2D_ARRAY']
->;
+  35678: 3553,
+  36289: 35866,
+};
 
 type CpuArray = Uint8Array | Uint16Array | Float32Array | Uint32Array;
 type CpuArrayConstructor =
@@ -86,40 +118,87 @@ type TextureFormat = {
   type: GL['UNSIGNED_BYTE' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT'];
   CpuArray: CpuArrayConstructor;
   chn: 1 | 2 | 4;
-  // chn: number;
 };
-const TextureFormats = {} as Record<string, TextureFormat>;
 
-{
-  for (const t of ['FLOAT', 'INT', 'BOOL'] as const) {
-    const suf = t == 'FLOAT' ? 'f' : 'i';
-    Type2Setter[GL[t]] = 'uniform1' + suf;
-    for (const i of [2, 3, 4] as const) {
-      Type2Setter[GL[`${t}_VEC${i}`]] = `uniform${i}${suf}v`;
-      if (suf == 'f') {
-        Type2Setter[GL[`${t}_MAT${i}` as S]] = `uniformMatrix${i}fv`;
-      }
-    }
-  }
-  for (const [name, internalFormat, glformat, type, CpuArray, chn] of [
-    ['r8', GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
-    ['rgba8', GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
-    ['r16f', GL.R16F, GL.RED, GL.HALF_FLOAT, Uint16Array, 1],
-    ['rgba16f', GL.RGBA16F, GL.RGBA, GL.HALF_FLOAT, Uint16Array, 4],
-    ['r32f', GL.R32F, GL.RED, GL.FLOAT, Float32Array, 1],
-    ['rg32f', GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
-    ['rgba32f', GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
-    [
-      'depth',
-      GL.DEPTH_COMPONENT24,
-      GL.DEPTH_COMPONENT,
-      GL.UNSIGNED_INT,
-      Uint32Array,
-      1,
-    ],
-  ] as const)
-    TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
-}
+// const TextureFormats = {} as Record<string, TextureFormat>;
+// for (const [name, internalFormat, glformat, type, CpuArray, chn] of [
+//   ['r8', GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
+//   ['rgba8', GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
+//   ['r16f', GL.R16F, GL.RED, GL.HALF_FLOAT, Uint16Array, 1],
+//   ['rgba16f', GL.RGBA16F, GL.RGBA, GL.HALF_FLOAT, Uint16Array, 4],
+//   ['r32f', GL.R32F, GL.RED, GL.FLOAT, Float32Array, 1],
+//   ['rg32f', GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
+//   ['rgba32f', GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
+//   [
+//     'depth',
+//     GL.DEPTH_COMPONENT24,
+//     GL.DEPTH_COMPONENT,
+//     GL.UNSIGNED_INT,
+//     Uint32Array,
+//     1,
+//   ],
+// ] as const)
+//   TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
+
+type TextureFormatKey =
+  | 'r8'
+  | 'rgba8'
+  | 'r16f'
+  | 'rgba16f'
+  | 'r32f'
+  | 'rg32f'
+  | 'rgba32f'
+  | 'depth';
+const TextureFormats = {
+  r8: {
+    internalFormat: 33321,
+    glformat: 6403,
+    type: 5121,
+    chn: 1,
+  },
+  rgba8: {
+    internalFormat: 32856,
+    glformat: 6408,
+    type: 5121,
+    chn: 4,
+  },
+  r16f: {
+    internalFormat: 33325,
+    glformat: 6403,
+    type: 5131,
+    chn: 1,
+  },
+  rgba16f: {
+    internalFormat: 34842,
+    glformat: 6408,
+    type: 5131,
+    chn: 4,
+  },
+  r32f: {
+    internalFormat: 33326,
+    glformat: 6403,
+    type: 5126,
+    chn: 1,
+  },
+  rg32f: {
+    internalFormat: 33328,
+    glformat: 33319,
+    type: 5126,
+    chn: 2,
+  },
+  rgba32f: {
+    internalFormat: 34836,
+    glformat: 6408,
+    type: 5126,
+    chn: 4,
+  },
+  depth: {
+    internalFormat: 33190,
+    glformat: 6402,
+    type: 5125,
+    chn: 1,
+  },
+} as Record<TextureFormatKey, TextureFormat>;
 
 function memoize<T>(f: (k: string) => T) {
   const cache: Record<string, T> = {};
@@ -474,7 +553,7 @@ type GpuBuf = WebGLBuffer & { length?: number };
 type TargetParams = {
   size: [number, number];
   tag: string;
-  format?: string;
+  format?: TextureFormatKey;
   filter?: Filter;
   wrap?: Wrap;
   layern?: number | null;
@@ -743,11 +822,11 @@ function textureTarget(params: TargetParams) {
   } = params;
   if (!depth && format.includes('+')) {
     const [mainFormat, depthFormat] = format.split('+');
-    format = mainFormat;
+    format = mainFormat as TextureFormatKey;
     depth = textureTarget({
       ...params,
       tag: tag + '_depth',
-      format: depthFormat,
+      format: depthFormat as TextureFormatKey,
       layern: null,
       depth: null,
     });
@@ -879,7 +958,7 @@ const createTarget = (
 export type Spec = {
   size: [number, number];
   scale?: number;
-  format?: string;
+  format?: TextureFormatKey;
   depth?: TextureTarget | null;
   layern?: number | null;
   data: ArrayBufferView | null;
