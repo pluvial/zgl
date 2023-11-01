@@ -57,7 +57,10 @@ type S =
   | 'FLOAT_MAT4';
 
 const Type2Setter = {} as Record<GL[S], string>;
-const UniformType2TexTarget = {} as Record<
+const UniformType2TexTarget = {
+  [GL.SAMPLER_2D]: GL.TEXTURE_2D,
+  [GL.SAMPLER_2D_ARRAY]: GL.TEXTURE_2D_ARRAY,
+} as Record<
   GL['SAMPLER_2D' | 'SAMPLER_2D_ARRAY'],
   GL['TEXTURE_2D' | 'TEXTURE_2D_ARRAY']
 >;
@@ -98,9 +101,6 @@ const TextureFormats = {} as Record<string, TextureFormat>;
       }
     }
   }
-  UniformType2TexTarget[GL.SAMPLER_2D] = GL.TEXTURE_2D;
-  UniformType2TexTarget[GL.SAMPLER_2D_ARRAY] = GL.TEXTURE_2D_ARRAY;
-
   for (const [name, internalFormat, glformat, type, CpuArray, chn] of [
     ['r8', GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
     ['rgba8', GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
@@ -128,15 +128,30 @@ function memoize<T>(f: (k: string) => T) {
   return wrap;
 }
 
-export function updateObject<T extends Record<string, any>>(
-  o: T,
-  updates: Partial<T>,
-) {
-  for (const s in updates) {
-    o[s] = updates[s]!;
-  }
-  return o;
-}
+const func2gl = {
+  min: GL.MIN,
+  max: GL.MAX,
+  '+': GL.FUNC_ADD,
+  's-d': GL.FUNC_SUBTRACT,
+  'd-s': GL.FUNC_REVERSE_SUBTRACT,
+};
+
+const factor2gl = {
+  0: GL.ZERO,
+  1: GL.ONE,
+  s: GL.SRC_COLOR,
+  '(1-s)': GL.ONE_MINUS_SRC_COLOR,
+  d: GL.DST_COLOR,
+  '(1-d)': GL.ONE_MINUS_DST_COLOR,
+  sa: GL.SRC_ALPHA,
+  '(1-sa)': GL.ONE_MINUS_SRC_ALPHA,
+  da: GL.DST_ALPHA,
+  '(1-da)': GL.ONE_MINUS_DST_ALPHA,
+  c: GL.CONSTANT_COLOR,
+  '(1-c)': GL.ONE_MINUS_CONSTANT_COLOR,
+  ca: GL.CONSTANT_ALPHA,
+  '(1-ca)': GL.ONE_MINUS_CONSTANT_ALPHA,
+};
 
 type Res = {
   s: number;
@@ -147,53 +162,30 @@ type Res = {
 // 's*d', 'd*(1-sa) + s*sa', s-d', 'd-s' and so on into
 // gl.blendFunc/gl.blendEquation arguments.
 function parseBlendImpl(s0?: string): Res | null | undefined {
-  if (!s0) return;
-  let s = s0.replace(/\s+/g, '');
-  if (!s) return null;
-  const func2gl = {
-    min: GL.MIN,
-    max: GL.MAX,
-    '+': GL.FUNC_ADD,
-    's-d': GL.FUNC_SUBTRACT,
-    'd-s': GL.FUNC_REVERSE_SUBTRACT,
-  };
-  const factor2gl = {
-    0: GL.ZERO,
-    1: GL.ONE,
-    s: GL.SRC_COLOR,
-    '(1-s)': GL.ONE_MINUS_SRC_COLOR,
-    d: GL.DST_COLOR,
-    '(1-d)': GL.ONE_MINUS_DST_COLOR,
-    sa: GL.SRC_ALPHA,
-    '(1-sa)': GL.ONE_MINUS_SRC_ALPHA,
-    da: GL.DST_ALPHA,
-    '(1-da)': GL.ONE_MINUS_DST_ALPHA,
-    c: GL.CONSTANT_COLOR,
-    '(1-c)': GL.ONE_MINUS_CONSTANT_COLOR,
-    ca: GL.CONSTANT_ALPHA,
-    '(1-ca)': GL.ONE_MINUS_CONSTANT_ALPHA,
-  };
   const res = { s: GL.ZERO, d: GL.ZERO } as Res;
-  s = s.replace(
-    /(s|d)(?:\*(\w+|\(1-\w+\)))?/g,
-    (_, term: string, factor = '1') => {
-      if (!(factor in factor2gl)) {
-        throw `Unknown blend factor: "${factor}"`;
-      }
-      res[term as keyof Res] = factor2gl[factor as keyof typeof factor2gl];
-      return term;
-    },
-  );
-  let m;
-  if ((m = s.match(/^(min|max)\((s,d|d,s)\)$/))) {
-    res.f = func2gl[m[1] as keyof typeof func2gl];
-  } else if (s.match(/^(s|d|s\+d|d\+s)$/)) {
-    res.f = func2gl['+'];
-  } else if (s in func2gl) {
-    res.f = func2gl[s as keyof typeof func2gl];
-  } else {
-    throw `Unable to parse blend spec: "${s0}"`;
-  }
+  const s = s0
+    ?.replace(/\s+/g, '')
+    ?.replace(
+      /(s|d)(?:\*(\w+|\(1-\w+\)))?/g,
+      (_, term: string, factor = '1') => {
+        if (!(factor in factor2gl)) {
+          throw `Unknown blend factor: "${factor}"`;
+        }
+        res[term as keyof Res] = factor2gl[factor as keyof typeof factor2gl];
+        return term;
+      },
+    );
+  if (!s) return;
+  const m = s.match(/^(min|max)\((s,d|d,s)\)$/);
+  res.f = m
+    ? func2gl[m[1] as keyof typeof func2gl]
+    : s.match(/^(s|d|s\+d|d\+s)$/)
+    ? func2gl['+']
+    : s in func2gl
+    ? func2gl[s as keyof typeof func2gl]
+    : (() => {
+        throw `Unable to parse blend spec: "${s0}"`;
+      })();
   return res;
 }
 const parseBlend = memoize(parseBlendImpl);
@@ -203,25 +195,19 @@ function compileShader(code: string, type: number, program: WebGLProgram) {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, code);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const withLines = code
-      .split('\n')
-      .map((s, i) => `${(i + 1 + '').padStart(4)}: ${s}`)
-      .join('\n');
-    throw (
-      withLines +
-      '\n' +
-      '--- GLSL COMPILE ERROR ---\n' +
-      gl.getShaderInfoLog(shader)
-    );
-  }
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+    throw [
+      ...code.split('\n').map((s, i) => `${(i + 1 + '').padStart(4)}: ${s}`),
+      '--- GLSL COMPILE ERROR ---',
+      gl.getShaderInfoLog(shader),
+    ].join('\n');
   gl.attachShader(program, shader);
   gl.deleteShader(shader);
 }
 
 type Program = WebGLProgram & { setters: Record<string, (arg: any) => void> };
 
-function compileProgram(vs: string, fs: string) {
+function compileProgram(vs: string, fs: string): Program {
   const program = gl.createProgram() as Program;
   compileShader(vs, gl.VERTEX_SHADER, program);
   compileShader(fs, gl.FRAGMENT_SHADER, program);
@@ -266,7 +252,7 @@ function compileProgram(vs: string, fs: string) {
   return program;
 }
 
-function guessUniforms(params: Record<string, any>) {
+function guessUniforms(params: Record<string, any>): string {
   const uni = [];
   const len2type = {
     1: 'float',
@@ -305,13 +291,13 @@ const stripComments = (code: string) =>
   code.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
 // TODO better parser (use '\b')
-function definedUniforms(code: string) {
+function definedUniforms(code: string): Set<string> {
   code = stripComments(code);
   const lines = Array.from(code.matchAll(/uniform\s+\w+\s+([^;]+)\s*;/g));
   return new Set(lines.map(m => m[1].split(/[^\w]+/)).flat());
 }
 
-function expandCode(code: string, mainFunc: string, outVar: string) {
+function expandCode(code: string, mainFunc: string, outVar: string): string {
   const stripped = stripComments(code).trim();
   if (stripped != '' && stripped.indexOf(';') == -1) {
     code = `${outVar} = vec4(${stripped});`;
@@ -361,9 +347,6 @@ ${glsl_main_frag}`,
   );
 }
 
-export type Filter = 'linear' | 'nearest' | 'miplinear';
-export type Wrap = 'edge' | 'repeat' | 'mirror';
-
 type TextureSamplerMethods = {
   get linear(): TextureSampler;
   get nearest(): TextureSampler;
@@ -374,6 +357,9 @@ type TextureSamplerMethods = {
   get _sampler(): WebGLSampler;
   bindSampler(unit: number): void;
 };
+
+export type Filter = 'linear' | 'nearest' | 'miplinear';
+export type Wrap = 'edge' | 'repeat' | 'mirror';
 
 type TextureSamplerState = {
   handle?: WebGLTexture & { hasMipmap?: boolean };
@@ -548,27 +534,27 @@ function textureTarget(params: TargetParams) {
     if (!layern) {
       gl.texImage2D(
         gltarget!,
-        0 /*mip level*/,
+        0, // mip level
         internalFormat,
         w,
         h,
-        0 /*border*/,
+        0, // border
         glformat,
         type,
-        data /*data*/,
+        data, // data
       );
     } else {
       gl.texImage3D(
         gltarget!,
-        0 /*mip level*/,
+        0, // mip level
         internalFormat,
         w,
         h,
         layern,
-        0 /*border*/,
+        0, // border
         glformat,
         type,
-        data /*data*/,
+        data, // data
       );
     }
     gl.bindTexture(gltarget!, null);
@@ -587,7 +573,7 @@ function textureTarget(params: TargetParams) {
         attachment,
         gl.TEXTURE_2D,
         self.handle!,
-        0 /*level*/,
+        0, // level
       );
     } else {
       const drawBuffers = [];
@@ -598,7 +584,7 @@ function textureTarget(params: TargetParams) {
           gl.FRAMEBUFFER,
           attachment,
           self.handle!,
-          0 /*level*/,
+          0, // level
           i,
         );
       }
@@ -890,9 +876,6 @@ const createTarget = (
         .fill(0)
         .map(_ => textureTarget(params));
 
-export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
-export type Shaders = Record<string, Program>;
-
 export type Spec = {
   size: [number, number];
   scale?: number;
@@ -1096,7 +1079,11 @@ let raf: ReturnType<typeof requestAnimationFrame>;
 export const z = (params: Params, target?: Target | null) =>
   drawQuads(params, target);
 
+export type Shaders = Record<string, Program>;
+
 export let shaders: Shaders = {};
+
+export type Buffers = Record<string, TextureTarget | TextureTarget[]>;
 
 export let buffers: Buffers = {};
 
@@ -1109,8 +1096,7 @@ export function reset() {
   buffers = {};
 }
 
-export function adjustCanvas(dpr?: number) {
-  dpr = dpr || self.devicePixelRatio;
+export function adjustCanvas(dpr = devicePixelRatio) {
   const w = canvas.clientWidth * dpr,
     h = canvas.clientHeight * dpr;
   if (canvas.width != w || canvas.height != h) {
