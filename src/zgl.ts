@@ -1080,7 +1080,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   return targetResult;
 }
 
-export const canvas = document.querySelector('canvas')!;
+export const canvas = c as HTMLCanvasElement;
 export const gl: GL = canvas.getContext('webgl2', {
   alpha: false,
   antialias: true,

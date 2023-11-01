@@ -1,5 +1,4 @@
 import { z, loop, adjustCanvas } from './zgl.js';
-import './style.css';
 
 loop(({ time }) => {
   adjustCanvas();
