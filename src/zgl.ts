@@ -154,51 +154,59 @@ const TextureFormats = {
     internalFormat: 33321,
     glformat: 6403,
     type: 5121,
+    CpuArray: Uint8Array,
     chn: 1,
   },
   rgba8: {
     internalFormat: 32856,
     glformat: 6408,
     type: 5121,
+    CpuArray: Uint8Array,
     chn: 4,
   },
   r16f: {
     internalFormat: 33325,
     glformat: 6403,
     type: 5131,
+    CpuArray: Uint16Array,
     chn: 1,
   },
   rgba16f: {
     internalFormat: 34842,
     glformat: 6408,
     type: 5131,
+    CpuArray: Uint16Array,
     chn: 4,
   },
   r32f: {
     internalFormat: 33326,
     glformat: 6403,
     type: 5126,
+    CpuArray: Float32Array,
     chn: 1,
   },
   rg32f: {
     internalFormat: 33328,
     glformat: 33319,
     type: 5126,
+    CpuArray: Float32Array,
     chn: 2,
   },
   rgba32f: {
     internalFormat: 34836,
     glformat: 6408,
     type: 5126,
+    CpuArray: Float32Array,
     chn: 4,
   },
   depth: {
     internalFormat: 33190,
     glformat: 6402,
     type: 5125,
+    CpuArray: Uint32Array,
     chn: 1,
   },
-} as Record<TextureFormat, TextureFormatInfo>;
+} as const;
 
 function memoize<T>(f: (k: string) => T) {
   const cache: Record<string, T> = {};
@@ -706,11 +714,11 @@ function textureTarget(params: TargetParams) {
 
   function _readPixels(
     box: [number, number, number, number],
-    targetBuf: ArrayBufferView | null,
+    targetBuf: ArrayBufferView | GLuint,
   ) {
     const { glformat, type } = self.formatInfo;
     bindTarget(/*readonly*/ true);
-    gl.readPixels(...box, glformat, type, targetBuf);
+    gl.readPixels(...box, glformat, type, targetBuf as GLuint);
   }
 
   function readSync(...optBox: [number, number, number, number]): CpuArray {
@@ -757,7 +765,7 @@ function textureTarget(params: TargetParams) {
   ) {
     const { box, n } = _getBox(optBox);
     const gpuBuf = _bindAsyncBuffer(n);
-    _readPixels(box, null);
+    _readPixels(box, 0);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
     gl.flush();
