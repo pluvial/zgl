@@ -17,11 +17,11 @@ declare module '*.frag' {
 
 declare var c: HTMLCanvasElement;
 
-declare var panel: HTMLDetailsElement;
+declare var p: HTMLDetailsElement;
 
 declare var cards: HTMLDivElement;
 
-declare var demo: HTMLDivElement;
+declare var d: HTMLDivElement;
 
 declare var buttons: HTMLDivElement;
 
