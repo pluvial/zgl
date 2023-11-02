@@ -2,6 +2,7 @@ import { GUI } from 'lil-gui';
 import { z, adjustCanvas, gl, reset, Params, Target } from '../src/zgl.js';
 import demos from './index.js';
 import glsl_include from './include.glsl';
+import 'lil-gui/dist/lil-gui.css';
 
 const setDisplay = (el, val) => (el.style.display = val);
 
@@ -224,7 +225,7 @@ function runDemo(name) {
     demo = gui = null;
   }
   if (!singleMode) location.hash = name;
-  gui = new GUI();
+  gui = new GUI({ container: lil });
   gui.domElement.id = 'gui';
   gui.hide();
   demo = new demos[name](withCamera, gui);

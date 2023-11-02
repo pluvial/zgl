@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  lil-gui@0.19.0:
+    hash: 5knlzmueafzaryrkrbwgvwhlpq
+    path: patches/lil-gui@0.19.0.patch
+
 devDependencies:
   '@sergeymakinen/vite-plugin-html-minimize':
     specifier: ^1.0.6
@@ -13,7 +18,7 @@ devDependencies:
     version: 0.5.7
   lil-gui:
     specifier: ^0.19.0
-    version: 0.19.0
+    version: 0.19.0(patch_hash=5knlzmueafzaryrkrbwgvwhlpq)
   terser:
     specifier: ^5.21.0
     version: 5.21.0
@@ -425,9 +430,10 @@ packages:
     engines: {node: '>=0.12.0'}
     dev: true
 
-  /lil-gui@0.19.0:
+  /lil-gui@0.19.0(patch_hash=5knlzmueafzaryrkrbwgvwhlpq):
     resolution: {integrity: sha512-02/Z7rPng3GXWFwkQVj1hQaJYo2fIEYctqe0ima5uI/N2HEagB9ZGCQKkVWr3UuKfTr0arto3Q9prTB8sxtJJw==}
     dev: true
+    patched: true
 
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}

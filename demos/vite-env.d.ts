@@ -37,6 +37,8 @@ declare var aboutButton: HTMLButtonElement;
 
 declare var about: HTMLDivElement;
 
+declare var lil: HTMLDivElement;
+
 declare var fullscreen: () => void;
 
 declare var toggleGui: () => void;
