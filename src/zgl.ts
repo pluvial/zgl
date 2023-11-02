@@ -104,42 +104,6 @@ type CpuArrayConstructor =
   | Float32ArrayConstructor
   | Uint32ArrayConstructor;
 
-type TextureFormatInfo = {
-  internalFormat: GL[
-    | 'R8'
-    | 'RGBA8'
-    | 'R16F'
-    | 'RGBA16F'
-    | 'R32F'
-    | 'RG32F'
-    | 'RGBA32F'
-    | 'DEPTH_COMPONENT24'];
-  glformat: GL['RED' | 'RGBA' | 'RG' | 'DEPTH_COMPONENT'];
-  type: GL['UNSIGNED_BYTE' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT'];
-  CpuArray: CpuArrayConstructor;
-  chn: 1 | 2 | 4;
-};
-
-const TextureFormats = {} as Record<string, TextureFormatInfo>;
-for (const [name, internalFormat, glformat, type, CpuArray, chn] of [
-  ['r8', GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
-  ['rgba8', GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
-  ['r16f', GL.R16F, GL.RED, GL.HALF_FLOAT, Uint16Array, 1],
-  ['rgba16f', GL.RGBA16F, GL.RGBA, GL.HALF_FLOAT, Uint16Array, 4],
-  ['r32f', GL.R32F, GL.RED, GL.FLOAT, Float32Array, 1],
-  ['rg32f', GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
-  ['rgba32f', GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
-  [
-    'depth',
-    GL.DEPTH_COMPONENT24,
-    GL.DEPTH_COMPONENT,
-    GL.UNSIGNED_INT,
-    Uint32Array,
-    1,
-  ],
-] as const)
-  TextureFormats[name] = { internalFormat, glformat, type, CpuArray, chn };
-
 type TextureFormat =
   | 'r8'
   | 'rgba8'
@@ -149,64 +113,39 @@ type TextureFormat =
   | 'rg32f'
   | 'rgba32f'
   | 'depth';
-// const TextureFormats = {
-//   r8: {
-//     internalFormat: 33321,
-//     glformat: 6403,
-//     type: 5121,
-//     CpuArray: Uint8Array,
-//     chn: 1,
-//   },
-//   rgba8: {
-//     internalFormat: 32856,
-//     glformat: 6408,
-//     type: 5121,
-//     CpuArray: Uint8Array,
-//     chn: 4,
-//   },
-//   r16f: {
-//     internalFormat: 33325,
-//     glformat: 6403,
-//     type: 5131,
-//     CpuArray: Uint16Array,
-//     chn: 1,
-//   },
-//   rgba16f: {
-//     internalFormat: 34842,
-//     glformat: 6408,
-//     type: 5131,
-//     CpuArray: Uint16Array,
-//     chn: 4,
-//   },
-//   r32f: {
-//     internalFormat: 33326,
-//     glformat: 6403,
-//     type: 5126,
-//     CpuArray: Float32Array,
-//     chn: 1,
-//   },
-//   rg32f: {
-//     internalFormat: 33328,
-//     glformat: 33319,
-//     type: 5126,
-//     CpuArray: Float32Array,
-//     chn: 2,
-//   },
-//   rgba32f: {
-//     internalFormat: 34836,
-//     glformat: 6408,
-//     type: 5126,
-//     CpuArray: Float32Array,
-//     chn: 4,
-//   },
-//   depth: {
-//     internalFormat: 33190,
-//     glformat: 6402,
-//     type: 5125,
-//     CpuArray: Uint32Array,
-//     chn: 1,
-//   },
-// } as const;
+
+type TextureFormatInfo = [
+  internalFormat: GL[
+    | 'R8'
+    | 'RGBA8'
+    | 'R16F'
+    | 'RGBA16F'
+    | 'R32F'
+    | 'RG32F'
+    | 'RGBA32F'
+    | 'DEPTH_COMPONENT24'],
+  glformat: GL['RED' | 'RGBA' | 'RG' | 'DEPTH_COMPONENT'],
+  type: GL['UNSIGNED_BYTE' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT'],
+  CpuArray: CpuArrayConstructor,
+  chn: 1 | 2 | 4,
+];
+
+const TextureFormats: Record<TextureFormat, TextureFormatInfo> = {
+  r8: [GL.R8, GL.RED, GL.UNSIGNED_BYTE, Uint8Array, 1],
+  rgba8: [GL.RGBA8, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array, 4],
+  r16f: [GL.R16F, GL.RED, GL.HALF_FLOAT, Uint16Array, 1],
+  rgba16f: [GL.RGBA16F, GL.RGBA, GL.HALF_FLOAT, Uint16Array, 4],
+  r32f: [GL.R32F, GL.RED, GL.FLOAT, Float32Array, 1],
+  rg32f: [GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
+  rgba32f: [GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
+  depth: [
+    GL.DEPTH_COMPONENT24,
+    GL.DEPTH_COMPONENT,
+    GL.UNSIGNED_INT,
+    Uint32Array,
+    1,
+  ],
+};
 
 function memoize<T>(f: (k: string) => T) {
   const cache: Record<string, T> = {};
@@ -616,7 +555,7 @@ type TextureTarget = TextureSampler & TextureTargetMethods & TextureTargetState;
 function textureTarget(params: TargetParams) {
   function update(size: [number, number], data: ArrayBufferView | null) {
     const { handle, gltarget, layern } = self;
-    const { internalFormat, glformat, type } = self.formatInfo;
+    const [internalFormat, glformat, type] = self.formatInfo;
     const [w, h] = size;
     gl.bindTexture(gltarget!, handle!);
     if (!layern) {
@@ -701,13 +640,13 @@ function textureTarget(params: TargetParams) {
   } {
     box = box && box.length ? box : [0, 0, ...self.size];
     const [, , w, h] = box,
-      n = w * h * self.formatInfo.chn;
+      n = w * h * self.formatInfo[4 /* chn */];
     return { box, n };
   }
 
   function _getCPUBuf(n: number): CpuArray {
     if (!self.cpu || self.cpu.length < n) {
-      self.cpu = new self.formatInfo.CpuArray(n);
+      self.cpu = new self.formatInfo[3 /* CpuArray */](n);
     }
     return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
   }
@@ -716,7 +655,7 @@ function textureTarget(params: TargetParams) {
     box: [number, number, number, number],
     targetBuf: ArrayBufferView | GLuint,
   ) {
-    const { glformat, type } = self.formatInfo;
+    const [, glformat, type] = self.formatInfo;
     bindTarget(/*readonly*/ true);
     gl.readPixels(...box, glformat, type, targetBuf as GLuint);
   }
@@ -743,7 +682,7 @@ function textureTarget(params: TargetParams) {
     }
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, gpuBuf);
     if (!gpuBuf.length || gpuBuf.length < n) {
-      const byteN = n * self.formatInfo.CpuArray.BYTES_PER_ELEMENT;
+      const byteN = n * self.formatInfo[3 /* CpuArray */].BYTES_PER_ELEMENT;
       gl.bufferData(gl.PIXEL_PACK_BUFFER, byteN, gl.STREAM_READ);
       gpuBuf.length = n;
       console.debug(`created/resized async gpu buffer "${self._tag}":`, gpuBuf);
