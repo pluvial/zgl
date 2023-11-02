@@ -11,5 +11,10 @@ export default defineConfig({
     viteSingleFile({ removeViteModuleLoader: true }),
     htmlMinimize.default(),
   ],
-  build: { target: 'esnext', minify },
+  build: {
+    target: 'esnext',
+    minify,
+    terserOptions: minify === 'terser' ? { format: { comments: false } } : null,
+  },
+  esbuild: { legalComments: 'none' },
 });
