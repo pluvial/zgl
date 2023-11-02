@@ -1,56 +1,9 @@
 import { GUI } from 'lil-gui';
 import { z, adjustCanvas, gl, reset } from '../src/zgl.js';
-import NeuralCA from './NeuralCA.js';
-import DotCamera from './DotCamera.js';
-import MeshGrid from './MeshGrid.js';
-import ParticleLife from './ParticleLife.js';
-import ParticleLife3d from './ParticleLife3d.js';
-import BitField from './BitField.js';
-import TextureSamplers from './TextureSamplers.js';
-import GameOfLife from './GameOfLife.js';
-import ParticleLenia from './ParticleLenia.js';
-import FancyLenia from './FancyLenia.js';
-import Spectrogram from './Spectrogram.js';
-import Physarum from './Physarum.js';
-import Physarum3d from './Physarum3d.js';
-import SurfaceNormals from './SurfaceNormals.js';
-import CubeDeform from './CubeDeform.js';
-import ColorCube from './ColorCube.js';
-import Shadowmap from './Shadowmap.js';
-import Torus4d from './Torus4d.js';
-import DeferredShading from './DeferredShading.js';
-import Springs from './Springs.js';
-import ReactionDiffusion from './ReactionDiffusion.js';
+import demos from './index.js';
 import glsl_include from './include.glsl';
 
-const demos = {
-  NeuralCA,
-  DotCamera,
-  MeshGrid,
-  ParticleLife,
-  ParticleLife3d,
-  BitField,
-  TextureSamplers,
-  GameOfLife,
-  ParticleLenia,
-  FancyLenia,
-  Spectrogram,
-  Physarum,
-  Physarum3d,
-  SurfaceNormals,
-  CubeDeform,
-  ColorCube,
-  Shadowmap,
-  Torus4d,
-  DeferredShading,
-  Springs,
-  ReactionDiffusion,
-};
-
-const $ = s => document.querySelector(s);
-const setDisplay = (el, val) => {
-  if ($(el)) $(el).style.display = val;
-};
+const setDisplay = (el, val) => (el.style.display = val);
 
 class DemoApp {
   constructor(demos, defaultDemo = 'ParticleLife3d') {
@@ -59,19 +12,13 @@ class DemoApp {
     if (this.singleMode) {
       defaultDemo = demos[0].name;
     }
-    this.demos = demos;
 
     this.canvas = c;
-    // const gl = this.canvas.getContext('webgl2', {
-    //   alpha: false,
-    //   antialias: true,
-    //   xrCompatible: true,
-    // });
     this.glsl = z;
     this.demo = null;
     this.gui = null;
 
-    this.xrDemos = Object.values(this.demos).filter(
+    this.xrDemos = Object.values(demos).filter(
       f => f.Tags && f.Tags.includes('3d'),
     );
     this.xrSession = null;
@@ -100,9 +47,8 @@ class DemoApp {
     };
     this.resetCamera();
 
-    this.glsl_include = glsl_include;
     this.withCamera = (params, target) => {
-      params = { ...params, Inc: this.glsl_include + (params.Inc || '') };
+      params = { ...params, Inc: glsl_include + (params.Inc || '') };
       if (target || !params.xrMode) {
         return this.glsl(params, target);
       }
@@ -149,7 +95,7 @@ class DemoApp {
     });
 
     let name = location.hash.slice(1);
-    if (!(name in this.demos)) {
+    if (!(name in demos)) {
       name = defaultDemo;
     }
     this.runDemo(name);
@@ -279,35 +225,32 @@ class DemoApp {
     this.gui = new GUI();
     this.gui.domElement.id = 'gui';
     this.gui.hide();
-    this.demo = new this.demos[name](this.withCamera, this.gui);
+    this.demo = new demos[name](this.withCamera, this.gui);
     if (this.gui && this.gui.controllers.length == 0) {
       this.gui.destroy();
       this.gui = null;
     }
-    setDisplay('#settingButton', this.gui ? 'block' : 'none');
-    if ($('#sourceLink')) {
-      $(
-        '#sourceLink',
-      ).href = `https://github.com/google/swissgl/blob/main/demo/${name}.js`;
-    }
+    setDisplay(settingButton, this.gui ? 'block' : 'none');
+    if (sourceLink)
+      sourceLink.href = `https://github.com/google/swissgl/blob/main/demo/${name}.js`;
     this.updateVRButtons();
     this.resetCamera();
   }
 
   updateVRButtons() {
-    setDisplay('#vrButton', 'none');
-    setDisplay('#arButton', 'none');
+    setDisplay(vrButton, 'none');
+    setDisplay(arButton, 'none');
     const tags = this.demo && this.demo.constructor.Tags;
     if (tags && tags.includes('3d')) {
-      if (this.haveVR) setDisplay('#vrButton', 'block');
-      if (this.haveAR) setDisplay('#arButton', 'block');
+      if (this.haveVR) setDisplay(vrButton, 'block');
+      if (this.haveAR) setDisplay(arButton, 'block');
     }
   }
 
   populatePreviews() {
-    const panel = document.getElementById('cards');
+    const panel = cards;
     if (!panel) return;
-    Object.keys(this.demos).forEach(name => {
+    Object.keys(demos).forEach(name => {
       const el = document.createElement('div');
       el.classList.add('card');
       el.innerHTML = `<img src="preview/${name}.jpg">${name}`;
@@ -344,18 +287,18 @@ Object.assign(window, {
     app.toggleXR('ar');
   },
   showAbout() {
-    $('#about').style.display = 'block';
+    about.style.display = 'block';
   },
   hideAbout() {
-    $('#about').style.display = 'none';
+    about.style.display = 'none';
   },
 });
 
-$('#demo').addEventListener('pointerdown', () => {
+demo.addEventListener('pointerdown', () => {
   hideAbout();
   if (window.innerWidth < 500) {
     // close menu on small screens
-    $('#panel').removeAttribute('open');
+    panel.removeAttribute('open');
   }
 });
-$('#panel').addEventListener('click', hideAbout);
+panel.addEventListener('click', hideAbout);

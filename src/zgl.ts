@@ -354,7 +354,7 @@ function guessUniforms(params: Record<string, any>): string {
     let s = null;
     // TODO: better type detection
     // (v instanceof TextureSampler) {
-    if (typeof v === 'object' && !Array.isArray(v)) {
+    if (typeof v === 'object' && (v as TextureSampler).bindSampler) {
       const [type, D] = v.layern ? ['sampler2DArray', '3'] : ['sampler2D', '2'];
       const lookupMacro = v.layern
         ? `#define ${name}(p,l) (_sample(${name}, (p), (l)))`
