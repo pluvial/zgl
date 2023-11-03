@@ -1032,9 +1032,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
     return targetResult;
   }
   const shaderID = Inc + VP + FP;
-  if (!(shaderID in shaders)) {
-    shaders[shaderID] = linkShader(uniforms, Inc, VP, FP);
-  }
+  shaders[shaderID] ??= linkShader(uniforms, Inc, VP, FP);
   const prog = shaders[shaderID];
   gl.useProgram(prog);
 
