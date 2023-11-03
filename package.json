@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:esm": "tsc && vite build",
+    "build": "MINIFY=esbuild pnpm build:esm",
+    "build:terser": "MINIFY=terser pnpm build:esm",
+    "lib:esm": "vite build -c vite.lib.config.js",
+    "lib": "MINIFY=esbuild pnpm lib:esm",
+    "minify:esbuild": "esbuild --bundle --minify --platform=neutral dist/zgl.js --outfile=dist/zgl.min.js",
+    "minify:terser": "terser dist/zgl.js -c -m --mangle-props --module --comments false -o dist/zgl.min.js",
     "preview": "vite preview"
   },
   "devDependencies": {
