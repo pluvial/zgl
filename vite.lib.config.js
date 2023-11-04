@@ -6,6 +6,7 @@ const minify = ['esbuild', 'terser'].includes(MINIFY) ? MINIFY : false;
 
 export default defineConfig({
   plugins: [glsl({ compress: true })],
+  publicDir: false,
   build: {
     lib: { entry: 'src/zgl.ts', formats: ['es'] },
     target: 'esnext',

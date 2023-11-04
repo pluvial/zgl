@@ -1,19 +1,33 @@
 {
-  "name": "zgl",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build:esm": "tsc && vite build",
-    "build": "MINIFY=esbuild pnpm build:esm",
-    "build:terser": "MINIFY=terser pnpm build:esm",
-    "lib:esm": "vite build -c vite.lib.config.js",
-    "lib": "MINIFY=esbuild pnpm lib:esm",
-    "minify:esbuild": "esbuild --bundle --minify --platform=neutral dist/zgl.js --outfile=dist/zgl.min.js",
-    "minify:terser": "terser dist/zgl.js -c -m --mangle-props --module --comments false -o dist/zgl.min.js",
-    "preview": "vite preview"
+  "name": "@pluvial/zgl",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pluvial/zgl"
   },
+  "version": "0.0.2",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/zgl.js",
+      "types": "./dist/zgl.d.ts"
+    },
+    "./dist/zgl.min.js": {
+      "import": "./dist/zgl.min.js",
+      "types": "./dist/zgl.d.ts"
+    },
+    "./dist/zgl.terser.js": {
+      "import": "./dist/zgl.terser.js",
+      "types": "./dist/zgl.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "patches",
+    "LICENSE",
+    "README.md"
+  ],
   "devDependencies": {
     "@sergeymakinen/vite-plugin-html-minimize": "^1.0.6",
     "@types/webxr": "^0.5.7",
@@ -28,5 +42,18 @@
     "patchedDependencies": {
       "lil-gui@0.19.0": "patches/lil-gui@0.19.0.patch"
     }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build:esm": "tsc && vite build",
+    "build": "MINIFY=esbuild pnpm build:esm",
+    "build:terser": "MINIFY=terser pnpm build:esm",
+    "lib": "pnpm lib:esm && pnpm lib:min && pnpm lib:terser && pnpm lib:tsc",
+    "lib:esm": "vite build -c vite.lib.config.js",
+    "lib:min": "esbuild --minify --platform=neutral dist/zgl.js --outfile=dist/zgl.min.js",
+    "lib:terser": "terser dist/zgl.js -c -m --mangle-props --module --comments false -o dist/zgl.terser.js",
+    "lib:tsc": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "prepublishOnly": "pnpm lib",
+    "preview": "vite preview"
   }
 }
