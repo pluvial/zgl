@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import glsl from 'vite-plugin-glsl';
 
-const { MINIFY } = process.env;
-const minify = ['esbuild', 'terser'].includes(MINIFY) ? MINIFY : false;
+const minify = process.env.MINIFY ?? false;
+if (minify && minify !== 'terser' && minify !== 'esbuild') {
+  throw new Error('MINIFY must be either "terser" or "esbuild"');
+}
 
 export default defineConfig({
   plugins: [glsl({ compress: true })],
@@ -11,7 +13,7 @@ export default defineConfig({
     lib: { entry: 'src/zgl.ts', formats: ['es'] },
     target: 'esnext',
     minify,
-    terserOptions: minify === 'terser' ? { format: { comments: false } } : null,
+    terserOptions: minify === 'terser' ? { format: { comments: false } } : undefined,
   },
   esbuild: { legalComments: 'none' },
 });
