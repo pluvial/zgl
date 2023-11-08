@@ -133,7 +133,7 @@ const TextureFormats: Record<TextureFormat, TextureFormatInfo> = {
   depth: [GL.DEPTH_COMPONENT24, GL.DEPTH_COMPONENT, GL.UNSIGNED_INT, Uint32Array, 1],
 };
 
-function memoize<T>(f: (k: string) => T) {
+function memoize<T>(f: (_k: string) => T) {
   const cache: Record<string, T> = {};
   const wrap = (k: string) => (k in cache ? cache[k] : (cache[k] = f(k)));
   wrap.cache = cache;
@@ -214,7 +214,7 @@ function compileShader(code: string, type: number, program: WebGLProgram) {
   gl.deleteShader(shader);
 }
 
-type Program = WebGLProgram & { setters: Record<string, (arg: any) => void> };
+type Program = WebGLProgram & { setters: Record<string, (_arg: any) => void> };
 
 function compileProgram(vs: string, fs: string): Program {
   const program = gl.createProgram() as Program;
@@ -352,7 +352,7 @@ type TextureSamplerMethods = {
   get repeat(): TextureSampler;
   get mirror(): TextureSampler;
   get _sampler(): WebGLSampler;
-  bindSampler(unit: number): void;
+  bindSampler(_unit: number): void;
 };
 
 export type Filter = 'linear' | 'nearest' | 'miplinear';
@@ -479,9 +479,9 @@ type TargetParams = {
 };
 
 type TextureTargetMethods = {
-  update(size: [number, number], data: ArrayBufferView | null): void;
+  update(_size: [number, number], _data: ArrayBufferView | null): void;
   attach(): void;
-  bindTarget(readonly?: boolean): [number, number];
+  bindTarget(_readonly?: boolean): [number, number];
   // _getBox(box?: [number, number, number, number]): {
   //   box: [number, number, number, number];
   //   n: number;
@@ -491,13 +491,13 @@ type TextureTargetMethods = {
   //   box: [number, number, number, number],
   //   targetBuf: ArrayBufferView | null,
   // ): void;
-  readSync(...optBox: [number, number, number, number]): CpuArray;
+  readSync(..._optBox: [number, number, number, number]): CpuArray;
   // _bindAsyncBuffer(n: number): GpuBuf;
   // _deleteAsyncBuf(gpuBuf: GpuBuf): void;
   read(
-    callback: (target: ArrayBufferView) => void,
-    optBox?: [number, number, number, number],
-    optTarget?: ArrayBufferView,
+    _callback: (_target: ArrayBufferView) => void,
+    _optBox?: [number, number, number, number],
+    _optTarget?: ArrayBufferView,
   ): void;
   // _asyncFetch(
   //   gpuBuf: GpuBuf,
@@ -663,7 +663,7 @@ function textureTarget(params: TargetParams) {
 
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback
   function read(
-    callback: (target: ArrayBufferView) => void,
+    callback: (_target: ArrayBufferView) => void,
     optBox?: [number, number, number, number],
     optTarget?: ArrayBufferView,
   ) {
@@ -679,7 +679,7 @@ function textureTarget(params: TargetParams) {
   function _asyncFetch(
     gpuBuf: GpuBuf,
     sync: WebGLSync,
-    callback: (target: ArrayBufferView) => void,
+    callback: (_target: ArrayBufferView) => void,
     optTarget?: ArrayBufferView,
   ) {
     if (!gpuBuf.length) {
@@ -947,7 +947,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   const options = {} as Options,
     uniforms = {} as Uniforms;
   for (const p in params) {
-    // @ts-ignore
+    // @ts-expect-error TODO
     (OptNames.has(p) ? options : uniforms)[p] = params[p];
   }
   const [Inc, VP, FP] = [options.Inc || '', options.VP || '', options.FP || ''];
@@ -1084,7 +1084,7 @@ export function adjustCanvas(dpr = devicePixelRatio) {
   }
 }
 
-export function loop(callback: (arg: { time: number }) => any) {
+export function loop(callback: (_arg: { time: number }) => any) {
   raf = requestAnimationFrame(function frameFunc(time) {
     const res = callback({ time: time / 1000.0 });
     if (res != 'stop') raf = requestAnimationFrame(frameFunc);
