@@ -13,9 +13,7 @@
     <canvas id="c"></canvas> -->
     <script type="module" src="demos/main.ts"></script>
     <details id="p" open>
-      <summary>
-        <a href="https://github.com/google/swissgl">SwissGL</a> demos
-      </summary>
+      <summary><a href="https://github.com/pluvial/zgl">ZGL</a> demos</summary>
       <div id="cards"></div>
     </details>
     <div id="d">
@@ -23,12 +21,7 @@
       <div id="buttons">
         <button title="VR" onclick="toggleVR()" id="vrButton">VR</button>
         <button title="AR" onclick="toggleAR()" id="arButton">AR</button>
-        <button
-          title="settings"
-          onclick="toggleGui()"
-          id="settingButton"
-          style="font-size: 180%"
-        >
+        <button title="settings" onclick="toggleGui()" id="settingButton" style="font-size: 180%">
           ⛯
         </button>
         <button title="source code">
@@ -40,18 +33,15 @@
     <button title="about" id="aboutButton" onclick="showAbout()">?</button>
     <div id="about">
       <p>
-        <a href="https://github.com/google/swissgl"><b>SwissGL</b></a>
-        is a prototype of a minimal yet expressive GPU library built on WebGL2.
-        A single <nobr>"glsl()"</nobr> function runs GLSL code snippets on the
-        GPU and manages the resulting texture buffers.
+        <a href="https://github.com/pluvial/zgl"><b>ZGL</b></a> is a prototype of a minimal yet
+        expressive GPU library built on WebGL2. A single <nobr>"z()"</nobr> function runs GLSL code
+        snippets on the GPU and manages the resulting texture buffers.
       </p>
       <p>
         This page contains a few demos built using the library. Click the
         <nobr>"&lt;&gt;"</nobr> button to see the source of the current example.
       </p>
-      <button style="font-size: 20px; margin: auto" onclick="hideAbout()">
-        hide
-      </button>
+      <button style="font-size: 20px; margin: auto" onclick="hideAbout()">hide</button>
     </div>
     <div id="lil"></div>
   </body>

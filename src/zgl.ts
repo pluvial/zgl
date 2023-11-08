@@ -104,15 +104,7 @@ type CpuArrayConstructor =
   | Float32ArrayConstructor
   | Uint32ArrayConstructor;
 
-type TextureFormat =
-  | 'r8'
-  | 'rgba8'
-  | 'r16f'
-  | 'rgba16f'
-  | 'r32f'
-  | 'rg32f'
-  | 'rgba32f'
-  | 'depth';
+type TextureFormat = 'r8' | 'rgba8' | 'r16f' | 'rgba16f' | 'r32f' | 'rg32f' | 'rgba32f' | 'depth';
 
 type TextureFormatInfo = [
   internalFormat: GL[
@@ -138,13 +130,7 @@ const TextureFormats: Record<TextureFormat, TextureFormatInfo> = {
   r32f: [GL.R32F, GL.RED, GL.FLOAT, Float32Array, 1],
   rg32f: [GL.RG32F, GL.RG, GL.FLOAT, Float32Array, 2],
   rgba32f: [GL.RGBA32F, GL.RGBA, GL.FLOAT, Float32Array, 4],
-  depth: [
-    GL.DEPTH_COMPONENT24,
-    GL.DEPTH_COMPONENT,
-    GL.UNSIGNED_INT,
-    Uint32Array,
-    1,
-  ],
+  depth: [GL.DEPTH_COMPONENT24, GL.DEPTH_COMPONENT, GL.UNSIGNED_INT, Uint32Array, 1],
 };
 
 function memoize<T>(f: (k: string) => T) {
@@ -191,16 +177,13 @@ function parseBlendImpl(s0?: string): Res | null | undefined {
   const res = { s: GL.ZERO, d: GL.ZERO } as Res;
   const s = s0
     ?.replace(/\s+/g, '')
-    ?.replace(
-      /(s|d)(?:\*(\w+|\(1-\w+\)))?/g,
-      (_, term: string, factor = '1') => {
-        if (!(factor in factor2gl)) {
-          throw `Unknown blend factor: "${factor}"`;
-        }
-        res[term as keyof Res] = factor2gl[factor as keyof typeof factor2gl];
-        return term;
-      },
-    );
+    ?.replace(/(s|d)(?:\*(\w+|\(1-\w+\)))?/g, (_, term: string, factor = '1') => {
+      if (!(factor in factor2gl)) {
+        throw `Unknown blend factor: "${factor}"`;
+      }
+      res[term as keyof Res] = factor2gl[factor as keyof typeof factor2gl];
+      return term;
+    });
   if (!s) return;
   const m = s.match(/^(min|max)\((s,d|d,s)\)$/);
   res.f = m
@@ -251,8 +234,7 @@ function compileProgram(vs: string, fs: string): Program {
     const name = info.name.match(/^\w+/)![0];
     if (info.type in UniformType2TexTarget) {
       const unit = unitCount++;
-      const target =
-        UniformType2TexTarget[info.type as keyof typeof UniformType2TexTarget];
+      const target = UniformType2TexTarget[info.type as keyof typeof UniformType2TexTarget];
       gl.uniform1i(loc, unit);
       program.setters[name] = tex => {
         gl.activeTexture(gl.TEXTURE0 + unit);
@@ -262,14 +244,8 @@ function compileProgram(vs: string, fs: string): Program {
       const fname = Type2Setter[info.type as keyof typeof Type2Setter];
       const setter = fname.startsWith('uniformMatrix')
         ? (v: Iterable<number>) =>
-            gl[
-              fname as
-                | 'uniformMatrix2fv'
-                | 'uniformMatrix3fv'
-                | 'uniformMatrix4fv'
-            ](loc, false, v)
-        : (v: number & Iterable<number>) =>
-            gl[fname as 'uniform1f' | 'uniform1i'](loc, v);
+            gl[fname as 'uniformMatrix2fv' | 'uniformMatrix3fv' | 'uniformMatrix4fv'](loc, false, v)
+        : (v: number & Iterable<number>) => gl[fname as 'uniform1f' | 'uniform1i'](loc, v);
       program.setters[name] = v => (v != undefined ? setter(v) : null);
     }
   }
@@ -314,8 +290,7 @@ function guessUniforms(params: Record<string, any>): string {
   return uni.join('\n') + '\n';
 }
 
-const stripComments = (code: string) =>
-  code.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+const stripComments = (code: string) => code.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
 // TODO better parser (use '\b')
 function definedUniforms(code: string): Set<string> {
@@ -348,12 +323,7 @@ const extractVaryings = (VP: string) =>
 
 const stripVaryings = (VP: string) => VP.replace(/\bvarying\s+\w+/g, '');
 
-function linkShader(
-  uniforms: Record<string, any>,
-  Inc: string,
-  VP: string,
-  FP: string,
-) {
+function linkShader(uniforms: Record<string, any>, Inc: string, VP: string, FP: string) {
   const defined = definedUniforms([glsl_template, Inc, VP, FP].join('\n'));
   const undefined = Object.entries(uniforms)
     .filter(kv => kv[0].match(/^\w+$/))
@@ -470,8 +440,7 @@ function textureSampler(): TextureSampler {
           | 'WRAP_R'
           | 'WRAP_S'
           | 'WRAP_T';
-        const setf = (k: PName, v: number) =>
-          gl.samplerParameteri(sampler, gl[`TEXTURE_${k}`], v);
+        const setf = (k: PName, v: number) => gl.samplerParameteri(sampler, gl[`TEXTURE_${k}`], v);
         setf('MIN_FILTER', glfilter);
         setf('MAG_FILTER', filter == 'miplinear' ? gl.LINEAR : glfilter);
         setf('WRAP_S', glwrap);
@@ -593,8 +562,7 @@ function textureTarget(params: TargetParams) {
 
   function attach() {
     if (!self.layern) {
-      const attachment =
-        self.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
+      const attachment = self.format == 'depth' ? gl.DEPTH_ATTACHMENT : gl.COLOR_ATTACHMENT0;
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         attachment,
@@ -651,10 +619,7 @@ function textureTarget(params: TargetParams) {
     return self.cpu.length == n ? self.cpu : self.cpu.subarray(0, n);
   }
 
-  function _readPixels(
-    box: [number, number, number, number],
-    targetBuf: ArrayBufferView | GLuint,
-  ) {
+  function _readPixels(box: [number, number, number, number], targetBuf: ArrayBufferView | GLuint) {
     const [, glformat, type] = self.formatInfo;
     bindTarget(/*readonly*/ true);
     gl.readPixels(...box, glformat, type, targetBuf as GLuint);
@@ -724,10 +689,7 @@ function textureTarget(params: TargetParams) {
     }
     const res = gl.clientWaitSync(sync, 0, 0);
     if (res === gl.TIMEOUT_EXPIRED) {
-      setTimeout(
-        () => _asyncFetch(gpuBuf, sync, callback, optTarget),
-        1 /*ms*/,
-      );
+      setTimeout(() => _asyncFetch(gpuBuf, sync, callback, optTarget), 1 /*ms*/);
       return;
     }
     if (res === gl.WAIT_FAILED) {
@@ -804,11 +766,7 @@ function textureTarget(params: TargetParams) {
 
 export type Aspect = 'fit' | 'cover' | 'mean' | 'x' | 'y';
 
-function calcAspect(
-  aspect: Aspect | null | undefined,
-  w: number,
-  h: number,
-): [number, number] {
+function calcAspect(aspect: Aspect | null | undefined, w: number, h: number): [number, number] {
   if (!aspect) return [1, 1];
   let c;
   switch (aspect) {
@@ -894,9 +852,7 @@ function getTargetSize({
 
 type TargetResult = TextureTarget | TextureTarget[];
 
-const createTarget = (
-  params: TargetParams & { story?: number },
-): TargetResult =>
+const createTarget = (params: TargetParams & { story?: number }): TargetResult =>
   !params.story
     ? textureTarget(params)
     : Array(params.story)
@@ -1073,9 +1029,7 @@ function drawQuads(params: Params, target?: Target | null): TargetResult {
   gl.bindVertexArray(_indexVA!);
 
   // setup uniforms and textures
-  Object.entries(prog.setters).forEach(([name, f]) =>
-    f(uniforms[name as keyof typeof uniforms]),
-  );
+  Object.entries(prog.setters).forEach(([name, f]) => f(uniforms[name as keyof typeof uniforms]));
   // draw
   gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, vertN, instN);
 
@@ -1102,8 +1056,7 @@ ensureVertexArray(1024);
 
 let raf: ReturnType<typeof requestAnimationFrame>;
 
-export const z = (params: Params, target?: Target | null) =>
-  drawQuads(params, target);
+export default (params: Params, target?: Target | null) => drawQuads(params, target);
 
 export type Shaders = Record<string, Program>;
 

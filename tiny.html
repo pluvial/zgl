@@ -5,12 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZGL</title>
-    <link rel="stylesheet" href="../src/style.css" />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      canvas {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
   </head>
   <body>
-    <canvas></canvas>
+    <canvas id="c"></canvas>
     <script type="module">
-      import { z, loop, adjustCanvas } from './src/zgl.ts';
+      import z, { loop, adjustCanvas } from './src/zgl.ts';
 
       loop(({ time }) => {
         adjustCanvas();

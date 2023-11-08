@@ -1,4 +1,4 @@
-import { z, loop, adjustCanvas } from './zgl.js';
+import z, { loop, adjustCanvas } from './zgl.js';
 
 loop(({ time }) => {
   adjustCanvas();

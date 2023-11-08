@@ -1,5 +1,5 @@
 import { GUI } from 'lil-gui';
-import { z, adjustCanvas, gl, reset, Params, Target } from '../src/zgl.js';
+import z, { adjustCanvas, gl, reset, Params, Target } from '../src/zgl.js';
 import demos from './index.js';
 import glsl_include from './include.glsl';
 import 'lil-gui/dist/lil-gui.css';
@@ -17,13 +17,10 @@ type Demos = typeof demos;
 type DemoNames = keyof Demos;
 type Demo = Demos[DemoNames];
 
-let glsl = z;
 let demo: Demo | null = null;
 let gui: GUI | null = null;
 
-const xrDemos = Object.values(demos).filter(f =>
-  (f as any).Tags?.includes('3d'),
-);
+const xrDemos = Object.values(demos).filter(f => (f as any).Tags?.includes('3d'));
 let xrSession: XRSession | null = null;
 let xrRefSpace: XRReferenceSpace | null = null;
 let xrPose: XRViewerPose | null = null;
@@ -54,7 +51,7 @@ resetCamera();
 function withCamera(params: Params, target?: Target) {
   params = { ...params, Inc: glsl_include + (params.Inc || '') };
   if (target || !params.xrMode) {
-    return glsl(params, target);
+    return z(params, target);
   }
   delete params.Aspect;
   const glLayer = xrSession!.renderState.baseLayer!;
@@ -69,9 +66,9 @@ function withCamera(params: Params, target?: Target) {
     params.View = [vp.x, vp.y, vp.width, vp.height];
     params.xrProjectionMatrix = view.projectionMatrix;
     params.xrViewMatrix = view.transform.inverse.matrix;
-    let { x, y, z } = view.transform.position;
+    const { x, y, z } = view.transform.position;
     params.xrPosition = [x, y, z];
-    glsl(params, target);
+    z(params, target);
   }
 }
 
@@ -136,9 +133,7 @@ function xrFrameRequestCallback(t, xrFrame: XRFrame) {
     const inputSource = xrSession!.inputSources[i];
     if (inputSource && inputSource.gamepad && inputSource.gamepad.buttons) {
       inputSource.gamepad.buttons.forEach((btn, btnIdx) => {
-        if (btnIdx < 4)
-          viewParams.xrButton[i * 4 + btnIdx] =
-            btn.value || btn.pressed ? 1 : 0;
+        if (btnIdx < 4) viewParams.xrButton[i * 4 + btnIdx] = btn.value || btn.pressed ? 1 : 0;
       });
     }
     if (!inputSource || !inputSource.targetRaySpace) continue;
@@ -192,26 +187,24 @@ function xrFrameRequestCallback(t, xrFrame: XRFrame) {
 
 function toggleXR(xr) {
   if (!xrSession) {
-    navigator
-      .xr!.requestSession(`immersive-${xr}` as XRSessionMode)
-      .then(session => {
-        xrSession = session;
-        session.addEventListener('end', () => {
-          xrSession = null;
-        });
-        session.updateRenderState({
-          baseLayer: new XRWebGLLayer(session, gl),
-        });
-        session.requestReferenceSpace('local').then(refSpace => {
-          xrRefSpace = refSpace.getOffsetReferenceSpace(
-            new XRRigidTransform(
-              { x: 0, y: -0.25, z: -1.0, w: 1 }, // position offset
-              { x: 0.5, y: 0.5, z: 0.5, w: -0.5 },
-            ), // rotate z up
-          );
-          session.requestAnimationFrame(xrFrameRequestCallback);
-        });
+    navigator.xr!.requestSession(`immersive-${xr}` as XRSessionMode).then(session => {
+      xrSession = session;
+      session.addEventListener('end', () => {
+        xrSession = null;
       });
+      session.updateRenderState({
+        baseLayer: new XRWebGLLayer(session, gl),
+      });
+      session.requestReferenceSpace('local').then(refSpace => {
+        xrRefSpace = refSpace.getOffsetReferenceSpace(
+          new XRRigidTransform(
+            { x: 0, y: -0.25, z: -1.0, w: 1 }, // position offset
+            { x: 0.5, y: 0.5, z: 0.5, w: -0.5 },
+          ), // rotate z up
+        );
+        session.requestAnimationFrame(xrFrameRequestCallback);
+      });
+    });
   } else {
     xrSession.end();
   }
@@ -234,8 +227,7 @@ function runDemo(name) {
     gui = null;
   }
   setDisplay(settingButton, gui ? 'block' : 'none');
-  if (sourceLink)
-    sourceLink.href = `https://github.com/google/swissgl/blob/main/demo/${name}.js`;
+  if (sourceLink) sourceLink.href = `https://github.com/pluvial/zgl/blob/main/demos/${name}.js`;
   updateVRButtons();
   resetCamera();
 }

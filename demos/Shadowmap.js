@@ -7,9 +7,9 @@
 export default class Shadowmap {
   static Tags = ['3d', 'shadows'];
 
-  constructor(glsl, gui) {
-    this.glsl = (p, t) =>
-      glsl(
+  constructor(z, gui) {
+    this.z = (p, t) =>
+      z(
         {
           ...p,
           Inc:
@@ -56,14 +56,14 @@ export default class Shadowmap {
   }
 
   drawScene(params) {
-    const { glsl } = this;
+    const { z } = this;
     const shadowPass = !params.shadowmap;
     const target = shadowPass
-      ? glsl({}, { size: [1024, 1024], format: 'depth', tag: 'shadowmap' })
+      ? z({}, { size: [1024, 1024], format: 'depth', tag: 'shadowmap' })
       : null;
     params = { ...params, shadowPass, DepthTest: 1 };
     // sphere
-    glsl(
+    z(
       {
         ...params,
         Grid: [3],
@@ -78,7 +78,7 @@ export default class Shadowmap {
       target,
     );
     // spirals
-    glsl(
+    z(
       {
         ...params,
         Mesh: [10, 256],
@@ -98,7 +98,7 @@ export default class Shadowmap {
       target,
     );
     // snow
-    glsl(
+    z(
       {
         ...params,
         Grid: [16, 16, 16],
@@ -114,7 +114,7 @@ export default class Shadowmap {
       target,
     );
     // floor
-    glsl(
+    z(
       {
         ...params,
         Face: 'front',
@@ -132,6 +132,6 @@ export default class Shadowmap {
   frame(_, params) {
     const shadowmap = this.drawScene(params);
     this.drawScene({ ...params, Aspect: 'mean', shadowmap });
-    //this.glsl({tex:shadowmap, View:[20, 20, 256, 256], FP:`1.0-tex(UV).x`});
+    //this.z({tex:shadowmap, View:[20, 20, 256, 256], FP:`1.0-tex(UV).x`});
   }
 }

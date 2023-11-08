@@ -8,7 +8,7 @@
 export default class Physarum {
   static Tags = ['2d', 'simulation'];
 
-  constructor(glsl, gui) {
+  constructor(z, gui) {
     const U = (this.U = { follow: false });
     const controllers = [];
     const par = (s, v, ...arg) => {
@@ -63,9 +63,9 @@ export default class Physarum {
     Object.assign(U, presets[this.preset]);
   }
 
-  frame(glsl) {
+  frame(z) {
     for (let i = 0; i < this.U.step_n; ++i) {
-      this.step(glsl);
+      this.step(z);
     }
     const points = this.points[0];
     const common = {
@@ -78,7 +78,7 @@ export default class Physarum {
             return 2.0*zoom*(p-d.xy)/vec2(field_size()); //*rot2(d.z-PI/2.)
         }`,
     };
-    glsl({
+    z({
       ...common,
       VP: `
         varying vec2 uv = XY*2.;
@@ -86,7 +86,7 @@ export default class Physarum {
       FP: `field(uv).x`,
     });
 
-    glsl({
+    z({
       ...this.U,
       ...common,
       Grid: [1, 1, 4],
@@ -100,10 +100,10 @@ export default class Physarum {
     });
   }
 
-  step(glsl) {
+  step(z) {
     const U = this.U,
       dt = U.dt;
-    const field = (this.field = glsl(
+    const field = (this.field = z(
       {
         dt,
         Inc: `
@@ -122,7 +122,7 @@ export default class Physarum {
       { story: 2, format: 'rgba8', filter: 'linear', tag: 'field' },
     ));
 
-    const points = (this.points = glsl(
+    const points = (this.points = z(
       {
         field: field[0],
         ...this.U,
@@ -159,7 +159,7 @@ export default class Physarum {
       },
     ));
 
-    glsl(
+    z(
       {
         dt,
         points: points[0],
