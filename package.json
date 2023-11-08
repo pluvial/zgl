@@ -52,7 +52,7 @@
     "lib:esm": "vite build -c vite.lib.config.js",
     "lib:min": "esbuild --minify --platform=neutral dist/zgl.js --outfile=dist/zgl.min.js",
     "lib:terser": "terser dist/zgl.js -c -m --mangle-props --module --comments false -o dist/zgl.terser.js",
-    "lib:tsc": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "lib:tsc": "tsc -p tsconfig.lib.json",
     "prepublishOnly": "pnpm lib",
     "preview": "vite preview"
   }

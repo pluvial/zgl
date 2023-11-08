@@ -1,18 +1,35 @@
 /// <reference types="vite/client" />
 
+// adapted from vite-plugin-glsl/ext
+
+/**
+ * @const
+ * @readonly
+ * @kind module
+ * @description Generic shaders */
 declare module '*.glsl' {
-  const src: string;
-  export default src;
+  const shader: string;
+  export default shader;
 }
 
+/**
+ * @const
+ * @readonly
+ * @kind module
+ * @description Vertex shaders */
 declare module '*.vert' {
-  const src: string;
-  export default src;
+  const shader: string;
+  export default shader;
 }
 
+/**
+ * @const
+ * @readonly
+ * @kind module
+ * @description Fragment shaders */
 declare module '*.frag' {
-  const src: string;
-  export default src;
+  const shader: string;
+  export default shader;
 }
 
 declare var c: HTMLCanvasElement;

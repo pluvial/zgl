@@ -10,7 +10,10 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
 
     /* Linting */
     "strict": true,
@@ -19,5 +22,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/main.ts"]
 }
