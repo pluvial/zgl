@@ -25,11 +25,18 @@ export default [
       parser: tsParser,
       parserOptions: {
         ecmaVersion: 'latest',
+        project: true,
       },
     },
     rules: {
       ...ts.configs['eslint-recommended'].rules,
-      ...ts.configs.recommended.rules,
+      // ...ts.configs.recommended.rules,
+      // ...ts.configs.stylistic.rules,
+      // ...ts.configs.strict.rules,
+      // ...ts.configs.stylistic.rules,
+      // ...ts.configs['recommended-type-checked'].rules,
+      ...ts.configs['strict-type-checked'].rules,
+      ...ts.configs['stylistic-type-checked'].rules,
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
