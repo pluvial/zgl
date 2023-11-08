@@ -66,8 +66,10 @@ function withCamera(params: Params, target?: Target) {
     params.View = [vp.x, vp.y, vp.width, vp.height];
     params.xrProjectionMatrix = view.projectionMatrix;
     params.xrViewMatrix = view.transform.inverse.matrix;
-    const { x, y, z } = view.transform.position;
-    params.xrPosition = [x, y, z];
+    {
+      const { x, y, z } = view.transform.position;
+      params.xrPosition = [x, y, z];
+    }
     z(params, target);
   }
 }
