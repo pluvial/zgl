@@ -124,8 +124,7 @@ FOut = vec4(pos, E*c_rep-G.x);`,
     );
   }
 
-  frame(_, params) {
-    const { state } = this;
+  frame(_, _params) {
     for (let i = 0; i < this.step_n; ++i) {
       this.step();
     }

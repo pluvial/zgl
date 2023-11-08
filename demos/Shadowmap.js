@@ -7,7 +7,7 @@
 export default class Shadowmap {
   static Tags = ['3d', 'shadows'];
 
-  constructor(z, gui) {
+  constructor(z, _gui) {
     this.z = (p, t) =>
       z(
         {

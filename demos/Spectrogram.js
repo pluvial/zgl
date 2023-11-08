@@ -8,7 +8,7 @@
 export default class Spectrogram {
   static Tags = ['3d', 'data'];
 
-  constructor(z, gui) {
+  constructor(_z, _gui) {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then(stream => {

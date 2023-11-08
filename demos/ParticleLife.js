@@ -47,7 +47,7 @@ FOut = vec4(pos, 0.0, color);`,
 
   step(touchPos) {
     touchPos = touchPos || [-1000, 0, 0];
-    const { K, F, points, worldExtent, repulsion, inertia, dt } = this;
+    const { F, points, worldExtent, repulsion, inertia, dt } = this;
     for (let i = 0; i < this.step_n; ++i)
       this.z(
         {
