@@ -150,14 +150,14 @@ function xrFrameRequestCallback(t, xrFrame: XRFrame) {
     Grid: [2],
     DepthTest: 1,
     VP: `
-            varying vec3 p = uv2sphere(UV);
-            varying vec4 buttons = xrButton[ID.x];
-            VPos = wld2proj(xrRay[ID.x]*vec4(p*vec3(0.02, 0.02, 0.1),1));`,
+varying vec3 p = uv2sphere(UV);
+varying vec4 buttons = xrButton[ID.x];
+VPos = wld2proj(xrRay[ID.x]*vec4(p*vec3(0.02, 0.02, 0.1),1));`,
     FP: `
-            vec3 c = p*0.5+0.5;
-            FOut = vec4(c*0.5,1);
-            float b = c.z*4.0;
-            if (b<4.0 && buttons[int(b)]>fract(b)) FOut += 0.5;`,
+vec3 c = p*0.5+0.5;
+FOut = vec4(c*0.5,1);
+float b = c.z*4.0;
+if (b<4.0 && buttons[int(b)]>fract(b)) FOut += 0.5;`,
   });
 
   const lookUpCoef = -xrPose.transform.matrix[10];
@@ -175,8 +175,8 @@ function xrFrameRequestCallback(t, xrFrame: XRFrame) {
         dt,
         DepthTest: 1,
         VP: `
-                vec3 p = uv2sphere(UV)*0.6*clamp(1.0-dt, 0.0, 0.8) + vec3(-2.0, 0.0, 3.0);
-                VPos = wld2proj(vec4(p,1));`,
+vec3 p = uv2sphere(UV)*0.6*clamp(1.0-dt, 0.0, 0.8) + vec3(-2.0, 0.0, 3.0);
+VPos = wld2proj(vec4(p,1));`,
         FP: `UV,0.5,1`,
       });
     }

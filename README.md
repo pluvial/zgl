@@ -81,9 +81,9 @@ for (let i = 0; i < 2; ++i) {
       K,
       seed: 123,
       FP: `
-        vec2 pos = (hash(ivec3(I, seed)).xy-0.5)*10.0;
-        float color = floor(UV.x*K);
-        FOut = vec4(pos, 0.0, color);`,
+vec2 pos = (hash(ivec3(I, seed)).xy-0.5)*10.0;
+float color = floor(UV.x*K);
+FOut = vec4(pos, 0.0, color);`,
     },
     points,
   );
@@ -112,13 +112,13 @@ z({
   // vertex shader that defines where to draw
   // the quad primitives
   VP: `
-    // fetch the current particle data
-    vec4 d = points(ID.xy);
-    // populate color varying to use in fragment shader
-    varying vec3 color = cos((d.w/K+vec3(0,0.33,0.66))*TAU)*0.5+0.5;
-    // set the clip-space vertex position, 'vec2 XY' contains
-    // coordinates of the quad vertex in -1..1 range
-    VPos.xy = 2.0*(d.xy+XY/8.0)/worldExtent;`,
+// fetch the current particle data
+vec4 d = points(ID.xy);
+// populate color varying to use in fragment shader
+varying vec3 color = cos((d.w/K+vec3(0,0.33,0.66))*TAU)*0.5+0.5;
+// set the clip-space vertex position, 'vec2 XY' contains
+// coordinates of the quad vertex in -1..1 range
+VPos.xy = 2.0*(d.xy+XY/8.0)/worldExtent;`,
   // Set the the fragment color and transparency
   // depending on the distance from the quad center.
   // Interpolated XY values are also available

@@ -16,24 +16,24 @@ export default class DeferredShading {
         DepthTest: 1,
         Clear: 0,
         VP: `
-        vec3 surface_f(vec2 p) {
-            vec2 c = sin(time+p*vec2(ID)*TAU);
-            vec3 pos = torus(p, 1.0, 0.4 + 0.1*c.x + 0.15*c.y)/8.0;
-            pos.xz *= rot2(float(ID.x+ID.y+ID.z));
-            pos.xyz += (vec3(ID)-vec3(Grid-1)*0.5)*0.4;
-            return pos;
-        }
-        void vertex() {
-            varying vec3 normal, wldPos = SURF(surface_f, UV, normal, 1e-3);
-            VPos = wld2proj(wldPos);
-        }`,
+vec3 surface_f(vec2 p) {
+    vec2 c = sin(time+p*vec2(ID)*TAU);
+    vec3 pos = torus(p, 1.0, 0.4 + 0.1*c.x + 0.15*c.y)/8.0;
+    pos.xz *= rot2(float(ID.x+ID.y+ID.z));
+    pos.xyz += (vec3(ID)-vec3(Grid-1)*0.5)*0.4;
+    return pos;
+}
+void vertex() {
+    varying vec3 normal, wldPos = SURF(surface_f, UV, normal, 1e-3);
+    VPos = wld2proj(wldPos);
+}`,
         FP: `
-            FOut = vec4(0.7, 0.7, 0.7, 1.0);
-            vec2 m = UV*vec2(Mesh)/4.0;
-            FOut.rgb += (isoline(m.x)+isoline(m.y))*0.2; // color
-            FOut1.xyz = normalize(normal);               // normal
-            FOut2 = vec4(wldPos, 1.0);                   // wldPos
-        `,
+FOut = vec4(0.7, 0.7, 0.7, 1.0);
+vec2 m = UV*vec2(Mesh)/4.0;
+FOut.rgb += (isoline(m.x)+isoline(m.y))*0.2; // color
+FOut1.xyz = normalize(normal);               // normal
+FOut2 = vec4(wldPos, 1.0);                   // wldPos
+`,
       },
       { format: 'rgba16f+depth', tag: 'gbuf', layern: 3 },
     );
@@ -63,16 +63,16 @@ export default class DeferredShading {
         Clear: 0,
         gbuf,
         FP: `
-            vec4 wldPos = gbuf(I,2);
-            if (wldPos.w==0.0) discard;
-            vec3 lightDir = lightPos-wldPos.xyz;
-            float r = length(lightDir)+1e-10;
-            if (r>lightR) discard;
-            vec3 color  = gbuf(I,0).rgb;
-            vec3 normal = gbuf(I,1).xyz;
-            float diff = max(dot(normal, lightDir/r), 0.0);
-            float att = 1.5*smoothstep(1.0,0.9,r/lightR) / (1.0+r*r*2e4);
-            FOut = vec4(color.rgb*lightColor*att*diff, 1.0);`,
+vec4 wldPos = gbuf(I,2);
+if (wldPos.w==0.0) discard;
+vec3 lightDir = lightPos-wldPos.xyz;
+float r = length(lightDir)+1e-10;
+if (r>lightR) discard;
+vec3 color  = gbuf(I,0).rgb;
+vec3 normal = gbuf(I,1).xyz;
+float diff = max(dot(normal, lightDir/r), 0.0);
+float att = 1.5*smoothstep(1.0,0.9,r/lightR) / (1.0+r*r*2e4);
+FOut = vec4(color.rgb*lightColor*att*diff, 1.0);`,
       },
       { format: 'rgba16f', tag: 'light', depth: gbuf.depth },
     );
