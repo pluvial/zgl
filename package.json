@@ -34,8 +34,10 @@
     "@types/eslint": "^8.44.7",
     "@types/webxr": "^0.5.7",
     "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.0.0",
     "globals": "^13.23.0",
     "lil-gui": "^0.19.0",
+    "prettier": "^3.0.3",
     "terser": "^5.21.0",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",
@@ -57,8 +59,9 @@
     "lib:min": "esbuild --minify --platform=neutral dist/zgl.js --outfile=dist/zgl.min.js",
     "lib:terser": "terser dist/zgl.js -c -m --mangle-props --module --comments false -o dist/zgl.terser.js",
     "lib:tsc": "tsc -p tsconfig.lib.json",
-    "lint": "eslint .",
-    "prepublishOnly": "pnpm lib",
+    "lint": "prettier --check . && eslint .",
+    "format": "prettier --write .",
+    "prepublishOnly": "pnpm lint && pnpm lib",
     "preview": "vite preview"
   }
 }
