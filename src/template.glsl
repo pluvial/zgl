@@ -1,6 +1,3 @@
-precision highp float;
-precision highp int;
-precision lowp sampler2DArray;
 uniform ivec3 Grid;
 uniform ivec2 Mesh;
 uniform ivec4 View;

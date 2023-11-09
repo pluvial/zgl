@@ -200,7 +200,11 @@ function parseBlendImpl(s0?: string): Res | null | undefined {
 const parseBlend = memoize(parseBlendImpl);
 
 function compileShader(code: string, type: number, program: WebGLProgram) {
-  code = '#version 300 es\n' + code;
+  code =
+    `#version 300 es
+precision highp float;
+precision highp int;
+precision lowp sampler2DArray;` + code;
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, code);
   gl.compileShader(shader);
