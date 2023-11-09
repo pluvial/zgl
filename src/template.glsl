@@ -7,7 +7,7 @@ uniform ivec4 View;
 #define ViewSize (View.zw)
 uniform vec2 Aspect;
 varying vec2 UV;
-#define XY (2.0*UV-1.0)
+#define XY (2.0 * UV - 1.0)
 // #define VertexID gl_VertexID
 // #define InstanceID gl_InstanceID
 
@@ -28,7 +28,8 @@ vec3 hash(ivec3 ix) {
 }
 
 mat2 rot2(float a) {
-  float s = sin(a), c = cos(a);
+  float s = sin(a),
+    c = cos(a);
   return mat2(c, s, -s, c);
 }
 
@@ -49,8 +50,9 @@ vec3 torus(vec2 uv, float r1, float r2) {
 }
 
 vec3 cubeVert(vec2 xy, int side) {
-  float x = xy.x, y = xy.y;
-  switch(side) {
+  float x = xy.x,
+    y = xy.y;
+  switch (side) {
     case 0:
       return vec3(x, y, 1);
     case 1:
@@ -63,7 +65,8 @@ vec3 cubeVert(vec2 xy, int side) {
       return vec3(1, x, y);
     case 5:
       return vec3(-1, y, x);
-  };
+  }
+  ;
   return vec3(0.0);
 }
 
@@ -71,7 +74,8 @@ vec3 _surf_f(vec3 p, vec3 a, vec3 b, out vec3 normal) {
   normal = normalize(cross(a - p, b - p));
   return p;
 }
-#define SURF(f, uv, out_normal, eps) _surf_f(f(uv), f(uv+vec2(eps,0)), f(uv+vec2(0,eps)), out_normal)
+#define SURF(f, uv, out_normal, eps)                                                               \
+  (_surf_f(f(uv), f((uv) + vec2(eps, 0)), f((uv) + vec2(0, eps)), out_normal))
 
 vec4 _sample(sampler2D tex, vec2 uv) {
   return texture(tex, uv);
@@ -93,7 +97,8 @@ float isoline(float v) {
 }
 float wireframe() {
   vec2 m = UV * vec2(Mesh);
-  float d1 = isoline(m.x - m.y), d2 = isoline(m.x + m.y);
+  float d1 = isoline(m.x - m.y),
+    d2 = isoline(m.x + m.y);
   float d = mix(d1, d2, float(int(m.y) % 2));
   return isoline(m.x) + isoline(m.y) + d;
 }

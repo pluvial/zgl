@@ -6,8 +6,7 @@ uniform vec3 xrPosition;
 uniform vec3 cameraYPD;
 
 vec3 cameraPos() {
-  if(xrMode)
-    return xrPosition;
+  if (xrMode) return xrPosition;
   vec3 p = vec3(0, 0, cameraYPD.z);
   p.yz *= rot2(-cameraYPD.y);
   p.xy *= rot2(-cameraYPD.x);
@@ -15,8 +14,7 @@ vec3 cameraPos() {
 }
 
 vec4 wld2view(vec4 p) {
-  if(xrMode)
-    return xrViewMatrix * p;
+  if (xrMode) return xrViewMatrix * p;
   p.xy *= rot2(cameraYPD.x);
   p.yz *= rot2(cameraYPD.y);
   p.z -= cameraYPD.z;
@@ -24,9 +22,10 @@ vec4 wld2view(vec4 p) {
 }
 
 vec4 view2proj(vec4 p) {
-  if(xrMode)
-    return xrProjectionMatrix * p;
-  const float near = 0.1, far = 10.0, fov = 1.0;
+  if (xrMode) return xrProjectionMatrix * p;
+  const float near = 0.1,
+    far = 10.0,
+    fov = 1.0;
   return vec4(p.xy / tan(fov / 2.0), (p.z * (near + far) + 2.0 * near * far) / (near - far), -p.z);
 }
 

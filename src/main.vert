@@ -3,8 +3,7 @@ void main() {
   int rowI = VertexID / rowVertN;
   int rowVertI = min(VertexID % rowVertN, rowVertN - 2);
   int odd = rowI % 2;
-  if(odd == 0)
-    rowVertI = rowVertN - rowVertI - 2;
+  if (odd == 0) rowVertI = rowVertN - rowVertI - 2;
   VID = ivec2(rowVertI >> 1, rowI + (rowVertI + odd + 1) % 2);
   int ii = InstanceID;
   ID.x = ii % Grid.x;
