@@ -335,10 +335,26 @@ function linkShader(uniforms: Record<string, any>, Inc: string, VP: string, FP: 
   return compileProgram(
     `
 #define VERT
+#define varying out
+#define VPos gl_Position
+layout(location = 0) in int VertexID;
+layout(location = 1) in int InstanceID;
+ivec2 VID;
+ivec3 ID;
 ${prefix}\n${VP}
 ${glsl_main_vert}`,
     `
 #define FRAG
+#define varying in
+layout(location = 0) out vec4 FOut;
+layout(location = 1) out vec4 FOut1;
+layout(location = 2) out vec4 FOut2;
+layout(location = 3) out vec4 FOut3;
+layout(location = 4) out vec4 FOut4;
+layout(location = 5) out vec4 FOut5;
+layout(location = 6) out vec4 FOut6;
+layout(location = 7) out vec4 FOut7;
+ivec2 I;
 ${prefix}\n${expandFP(FP)}
 ${glsl_main_frag}`,
   );
