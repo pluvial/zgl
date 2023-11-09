@@ -1,7 +1,6 @@
 .DS_Store
 build
 dist
-**/*.frag
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml

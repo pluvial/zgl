@@ -3,5 +3,7 @@
   "singleQuote": true,
   "trailingComma": "all",
   "printWidth": 100,
-  "useTabs": false
+  "useTabs": false,
+  "plugins": ["prettier-plugin-glsl"],
+  "overrides": [{ "files": ["*.frag"], "options": { "parser": "glsl-parser" } }]
 }
