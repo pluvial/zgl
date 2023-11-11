@@ -231,7 +231,7 @@ function compileProgram(vs: string, fs: string): Program {
   gl.useProgram(program);
   program.setters = {};
   let unitCount = 0;
-  const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) as number;
   for (let i = 0; i < numUniforms; ++i) {
     const info = gl.getActiveUniform(program, i)!;
     const loc = gl.getUniformLocation(program, info.name);
@@ -240,7 +240,7 @@ function compileProgram(vs: string, fs: string): Program {
       const unit = unitCount++;
       const target = UniformType2TexTarget[info.type as keyof typeof UniformType2TexTarget];
       gl.uniform1i(loc, unit);
-      program.setters[name] = tex => {
+      program.setters[name] = (tex?: TextureSampler) => {
         gl.activeTexture(gl.TEXTURE0 + unit);
         tex ? tex.bindSampler(unit) : gl.bindTexture(target, null);
       };

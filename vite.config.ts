@@ -3,12 +3,11 @@ import glsl from 'vite-plugin-glsl';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import htmlMinimizeModule from '@sergeymakinen/vite-plugin-html-minimize';
 
-const htmlMinimize = (htmlMinimizeModule as any).default as typeof htmlMinimizeModule;
+const { default: htmlMinimize } =
+  htmlMinimizeModule as unknown as typeof import('@sergeymakinen/vite-plugin-html-minimize');
 
-const minify = process.env.MINIFY ?? false;
-if (minify && minify !== 'terser' && minify !== 'esbuild') {
-  throw new Error('MINIFY must be either "terser" or "esbuild"');
-}
+const { ESBUILD, TERSER } = process.env;
+const minify = ESBUILD ? 'esbuild' : TERSER ? 'terser' : false;
 
 export default defineConfig({
   plugins: [
