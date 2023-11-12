@@ -1104,6 +1104,12 @@ export function adjustCanvas(dpr = devicePixelRatio) {
   }
 }
 
+export const resize = (
+  dpr = devicePixelRatio,
+  w = canvas.clientWidth * dpr,
+  h = canvas.clientHeight * dpr,
+) => (canvas.width != w || canvas.height != h) && [(canvas.width = w), (canvas.height = h)];
+
 export function loop(callback: (_arg: { time: number }) => any) {
   raf = requestAnimationFrame(function frameFunc(time) {
     const res = callback({ time: time / 1000.0 });
