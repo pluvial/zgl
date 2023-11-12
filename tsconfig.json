@@ -17,6 +17,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "paths": { "@/*": ["./dist/*"] },
     "types": ["vite-plugin-glsl/ext"]
   },
   "include": ["src"]
